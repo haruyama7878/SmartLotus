@@ -1,0 +1,10 @@
+{
+  "name": "codesmrtltv2-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix codeSmrtltv2-main run dev",
+    "build": "npm --prefix codeSmrtltv2-main run build",
+    "start": "npm --prefix codeSmrtltv2-main run start",
+    "typecheck": "npm --prefix codeSmrtltv2-main run typecheck"
+  }
+}
