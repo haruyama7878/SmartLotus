@@ -1,0 +1,1202 @@
+[
+  {
+    "deck": 1,
+    "index": 1,
+    "prompt": "Số liền trước và số liền sau của số 17 là:",
+    "options": [
+      "15 và 16",
+      "15 và 18",
+      "16 và 18",
+      "15 và 17"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 2,
+    "prompt": "Tìm số bé nhất trong các số sau:",
+    "options": [
+      "62",
+      "70",
+      "68",
+      "59"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 3,
+    "prompt": "An có 19 quả táo, An cho em 7 quả. Hỏi An còn bao quả táo?",
+    "options": [
+      "10",
+      "7",
+      "26",
+      "12"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 4,
+    "prompt": "Hình vẽ dưới đây có bao nhiêu đoạn thẳng?",
+    "options": [
+      "4 đoạn",
+      "5 đoạn",
+      "6 đoạn",
+      "2 đoạn"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 5,
+    "prompt": "Điền dấu >, <, = thích hợp vào chỗ chấm: 32 + 14 ... 14 + 33",
+    "options": [
+      ">",
+      "<",
+      "=",
+      "Đáp án khác"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 6,
+    "prompt": "Một quyển sách có 65 trang, Lan đã đọc hết 35 trang. Hỏi Lan còn phải đọc bao nhiêu trang nữa thì hết quyển sách?",
+    "options": [
+      "28 trang",
+      "30 trang",
+      "100 trang",
+      "35 trang"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 7,
+    "prompt": "Cần thêm bao nhiêu chấm tròn nữa để có tổng cộng 8 chấm tròn?",
+    "options": [
+      "3 chấm",
+      "4 chấm",
+      "5 chấm",
+      "2 chấm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 8,
+    "prompt": "Nhà bạn Hoa nuôi 19 con gà, mẹ bạn Hoa đã bán 12 con. Sau đó mẹ biếu bà ngoại 2 con. Vậy nhà bạn Hoa còn lại bao nhiêu con gà?",
+    "options": [
+      "10 con",
+      "9 con",
+      "7 con",
+      "5 con"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 9,
+    "prompt": "Tìm giá trị của A + B + C + D + E",
+    "options": [
+      "10",
+      "11",
+      "9",
+      "13"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 1,
+    "index": 10,
+    "prompt": "Tìm giá trị của A – B",
+    "options": [
+      "2",
+      "1",
+      "6",
+      "11"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 1,
+    "prompt": "Các số 78; 87; 56; 65; 34; 43 viết theo thứ tự từ bé đến lớn là:",
+    "options": [
+      "34, 43, 65, 56, 78, 87",
+      "87, 78, 65, 56, 43, 34",
+      "43, 34, 65, 56, 87, 78",
+      "34, 43, 56, 65, 78, 87"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 2,
+    "prompt": "Tính: 37 + 62 = ...",
+    "options": [
+      "98",
+      "99",
+      "100",
+      "89"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 3,
+    "prompt": "Đồng hồ dưới đây chỉ mấy giờ?",
+    "options": [
+      "10 giờ",
+      "7 giờ",
+      "5 giờ",
+      "12 giờ"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 4,
+    "prompt": "Lớp em có 20 học sinh nữ và 23 học sinh nam. Hỏi lớp em có tất cả bao nhiêu học sinh?",
+    "options": [
+      "43 học sinh",
+      "33 học sinh",
+      "25 học sinh",
+      "45 học sinh"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 5,
+    "prompt": "Một sợi dây dài 75 cm, bố cắt đi 35 cm. Hỏi sợi dây còn lại dài bao nhiêu xăng-ti-mét?",
+    "options": [
+      "35 cm",
+      "40 cm",
+      "45 cm",
+      "100 cm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 6,
+    "prompt": "Mẹ đi công tác 19 ngày. Mẹ đã ở đó 1 tuần lễ. Hỏi mẹ còn phải ở đó mấy ngày nữa?",
+    "options": [
+      "12 ngày",
+      "18 ngày",
+      "10 ngày",
+      "26 ngày"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 7,
+    "prompt": "Số liền trước của số tròn chục lớn nhất có 2 chữ số là:",
+    "options": [
+      "99",
+      "90",
+      "91",
+      "89"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 8,
+    "prompt": "Nhà An nuôi ba chục con gà. Sáng nay mua thêm 5 con nữa. Hỏi nhà An có tất cả bao nhiêu con gà?",
+    "options": [
+      "8 con",
+      "35 con",
+      "15 con",
+      "25 con"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 9,
+    "prompt": "Cần bao nhiêu con cừu đặt vào đĩa cân bên phải để chiếc cân thăng bằng?",
+    "options": [
+      "3 con",
+      "2 con",
+      "4 con",
+      "8 con"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 2,
+    "index": 10,
+    "prompt": "Ba đôi đũa có bao nhiêu chiếc đũa?",
+    "options": [
+      "2 chiếc",
+      "3 chiếc",
+      "4 chiếc",
+      "6 chiếc"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 1,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 74 < ... < 76 là:",
+    "options": [
+      "75",
+      "73",
+      "77",
+      "78"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 2,
+    "prompt": "Số 98 là số liền sau của số nào?",
+    "options": [
+      "99",
+      "100",
+      "97",
+      "98"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 3,
+    "prompt": "Tìm kết quả của phép tính sau: 63 + 6 – 8 = ......",
+    "options": [
+      "59",
+      "68",
+      "60",
+      "61"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 4,
+    "prompt": "Sau khi cửa hàng đã bán được 4 chục chiếc xe đạp, thì còn 1 chục chiếc xe đạp nữa. Hỏi lúc đầu cửa hàng có tất cả bao nhiêu chiếc xe đạp?",
+    "options": [
+      "30 chiếc",
+      "50 chiếc",
+      "40 chiếc",
+      "5 chiếc"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 5,
+    "prompt": "Hình bên dưới có bao nhiêu điểm nằm bên ngoài hình tròn",
+    "options": [
+      "2 điểm",
+      "4 điểm",
+      "6 điểm",
+      "Rất nhiều điểm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 6,
+    "prompt": "Điền số thích hợp vào chỗ chấm: ... – 32 = 46",
+    "options": [
+      "76",
+      "14",
+      "78",
+      "24"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 7,
+    "prompt": "Em của Ngọc năm nay có số tuổi bằng kết quả của tổng 5 số nhỏ nhất khác nhau. Hỏi năm nay em của Ngọc bao nhiêu tuổi?",
+    "options": [
+      "5 tuổi",
+      "15 tuổi",
+      "9 tuổi",
+      "10 tuổi"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 8,
+    "prompt": "Hiện nay tuổi của hai anh em cộng lại là 14 tuổi. Hỏi 2 năm nữa tuổi hai anh em cộng lại là bao nhiêu.",
+    "options": [
+      "16 tuổi",
+      "18 tuổi",
+      "14 tuổi",
+      "20 tuổi"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 9,
+    "prompt": "Kết quả phép trừ của số lớn nhất có hai chữ số với số bé nhất có 2 chữ số khác nhau là:",
+    "options": [
+      "88",
+      "89",
+      "99",
+      "90"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 3,
+    "index": 10,
+    "prompt": "Cho 3 chữ số 0; 1; 2; có tất cả bao nhiêu số có hai chữ số khác nhau được viết từ các chữ số trên?",
+    "options": [
+      "2 số",
+      "3 số",
+      "4 số",
+      "5 số"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 1,
+    "prompt": "Điền số thích hợp vào ô trống theo thứ tự từ trái sang phải:",
+    "options": [
+      "99; 94",
+      "99; 95",
+      "95; 94",
+      "89; 85"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 2,
+    "prompt": "Đồng hồ dưới đây chỉ mấy giờ?",
+    "options": [
+      "12 giờ",
+      "10 giờ",
+      "8 giờ",
+      "7 giờ"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 3,
+    "prompt": "Tính: 87 cm – 42 cm – 23 cm = ......",
+    "options": [
+      "22 cm",
+      "23 cm",
+      "25 cm",
+      "67 cm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 4,
+    "prompt": "Nhà Nga có 36 con gà, mẹ Nga đem đi bán 13 con gà. Hỏi nhà Nga còn lại bao nhiêu con gà?",
+    "options": [
+      "43 con gà",
+      "49 con gà",
+      "13 con gà",
+      "23 con gà"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 5,
+    "prompt": "Số 84 đọc là:",
+    "options": [
+      "Tám bốn",
+      "Tám mươi tư",
+      "Bốn tám",
+      "Tư tám"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 6,
+    "prompt": "Điền dấu >, <, = thích hợp: 90 + 5 ...... 94",
+    "options": [
+      ">",
+      "<",
+      "=",
+      "Đáp án khác"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 7,
+    "prompt": "Hồng có 40 nhãn vở. Hồng cho em 20 nhãn vở. Sau đó mẹ mua thêm cho Hồng 10 nhãn vở nữa. Hỏi cuối cùng Hồng có tất cả bao nhiêu nhãn vở?",
+    "options": [
+      "20 nhãn vở",
+      "10 nhãn vở",
+      "30 nhãn vở",
+      "50 nhãn vở"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 8,
+    "prompt": "Phép tính nào sau đây có kết quả lớn nhất?",
+    "options": [
+      "34 + 35",
+      "55 + 11",
+      "67 – 7",
+      "44 + 12"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 9,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 66 – 44 > ... > 57 – 37",
+    "options": [
+      "23",
+      "22",
+      "20",
+      "21"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 4,
+    "index": 10,
+    "prompt": "Hình vẽ bên dưới có bao nhiêu điểm?",
+    "options": [
+      "4 điểm",
+      "5 điểm",
+      "6 điểm",
+      "7 điểm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 1,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 58 cm + 40 cm = ...... cm",
+    "options": [
+      "18 cm",
+      "98 cm",
+      "99 cm",
+      "88 cm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 2,
+    "prompt": "Điền dấu >, <, = thích hợp vào chỗ chấm: 88 – 45 ...... 63 – 20",
+    "options": [
+      ">",
+      "<",
+      "=",
+      "Đáp án khác"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 3,
+    "prompt": "Mẹ hái được 85 quả hồng, mẹ đã bán 60 quả hồng. Hỏi mẹ còn lại bao nhiêu quả hồng?",
+    "options": [
+      "20 quả hồng",
+      "35 quả hồng",
+      "30 quả hồng",
+      "25 quả hồng"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 4,
+    "prompt": "Hình dưới đây có bao nhiêu đoạn thẳng?",
+    "options": [
+      "4 đoạn",
+      "5 đoạn",
+      "6 đoạn",
+      "7 đoạn"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 5,
+    "prompt": "Số gồm 9 chục và 6 đơn vị là:",
+    "options": [
+      "96",
+      "906",
+      "69",
+      "609"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 6,
+    "prompt": "Vào buổi sáng, kim dài chỉ số 12, kim ngắn chỉ số 7, lúc đó là mấy giờ?",
+    "options": [
+      "12 giờ",
+      "5 giờ",
+      "19 giờ",
+      "7 giờ"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 7,
+    "prompt": "Tìm số cộng với 3 rồi trừ đi 10 thì được 25.",
+    "options": [
+      "34",
+      "33",
+      "32",
+      "31"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 8,
+    "prompt": "Hai tuần lễ và 5 ngày thì bằng mấy ngày?",
+    "options": [
+      "14 ngày",
+      "7 ngày",
+      "12 ngày",
+      "19 ngày"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 9,
+    "prompt": "Tính tổng số liền trước và số liền sau của số 14.",
+    "options": [
+      "27",
+      "29",
+      "28",
+      "26"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 5,
+    "index": 10,
+    "prompt": "An có ít hơn Bình 4 viên bi, Bình có ít hơn Minh 3 viên bi. Hỏi Căn có mấy viên bi? Biết rằng An có 5 viên bi.",
+    "options": [
+      "12 viên bi",
+      "9 viên bi",
+      "8 viên bi",
+      "7 viên bi"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 1,
+    "prompt": "Số nào bé nhất trong các số sau: 54, 29, 45, 38",
+    "options": [
+      "54",
+      "29",
+      "45",
+      "38"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 2,
+    "prompt": "Số bảy mươi mốt viết thế nào?",
+    "options": [
+      "71",
+      "17",
+      "70",
+      "77"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 3,
+    "prompt": "Tính: 38 – 32 + 32 = ......",
+    "options": [
+      "32",
+      "36",
+      "38",
+      "40"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 4,
+    "prompt": "Điền kết quả thích hợp vào chỗ chấm: 75 cm – 5 cm + 8 cm = .........",
+    "options": [
+      "70 cm",
+      "75 cm",
+      "77 cm",
+      "78 cm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 5,
+    "prompt": "Hình dưới đây có bao nhiêu hình tam giác?",
+    "options": [
+      "3 hình",
+      "5 hình",
+      "2 hình",
+      "6 hình"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 6,
+    "prompt": "An đang nghĩ đến một số có hai chữ số mà số hàng chục là số lớn nhất có 1 chữ số, số hàng đơn vị là số nhỏ nhất có 1 chữ số. Số An nghĩ đến là số nào?",
+    "options": [
+      "19",
+      "91",
+      "90",
+      "99"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 7,
+    "prompt": "Một hộp bút chì có 10 chiếc bút. Bình quyên góp 5 hộp như vậy gửi đến các bạn nhỏ ở miền Trung. Hỏi Bình quyên góp tất cả bao nhiêu chiếc bút chì?",
+    "options": [
+      "15 chiếc",
+      "50 chiếc",
+      "5 chiếc",
+      "500 chiếc"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 8,
+    "prompt": "Trong xe buýt có 14 người. Khi xe dừng tại bến, có 15 người lên xe và 13 người xuống xe. Hỏi lúc đó xe buýt có bao nhiêu người?",
+    "options": [
+      "15 người",
+      "29 người",
+      "25 người",
+      "16 người"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 9,
+    "prompt": "Số liền sau trừ đi số liền trước của cùng một số thì có kết quả bằng bao nhiêu?",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 6,
+    "index": 10,
+    "prompt": "Lớp 1A thuê một chiếc xe loại 36 chỗ ngồi để đi tham quan vịnh Hạ Long (tính cả chỗ ngồi của cô giáo). Khi cô giáo cùng cả lớp lên xe ngồi thì xe còn thừa 3 ghế trống. Hỏi lớp 1A có bao nhiêu học sinh?",
+    "options": [
+      "39 học sinh",
+      "30 học sinh",
+      "33 học sinh",
+      "32 học sinh"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 1,
+    "prompt": "Hôm nay là thứ Hai ngày 10. Hôm qua là:",
+    "options": [
+      "Chủ Nhật ngày 9",
+      "Thứ Ba ngày 11",
+      "Thứ Bảy ngày 9",
+      "Thứ Ba ngày 9"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 2,
+    "prompt": "Số 65 đọc là:",
+    "options": [
+      "Sáu năm",
+      "Sáu mươi năm",
+      "Sáu mươi lăm",
+      "Năm mươi sáu"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 3,
+    "prompt": "Long có 15 quả bóng bay xanh và đỏ, trong đó có 4 quả bóng bay màu xanh. Hỏi Long có bao nhiêu quả bóng bay màu đỏ?",
+    "options": [
+      "19 quả",
+      "11 quả",
+      "10 quả",
+      "12 quả"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 4,
+    "prompt": "Các số lớn hơn 87 và nhỏ hơn 90 là:",
+    "options": [
+      "87; 88; 89; 90",
+      "87; 88; 89",
+      "88; 89; 90",
+      "88; 89"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 5,
+    "prompt": "Số 70 gồm:",
+    "options": [
+      "7 chục và 10 đơn vị",
+      "7 chục và 0 đơn vị",
+      "70 chục và 10 đơn vị",
+      "70 chục và 0 đơn vị"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 6,
+    "prompt": "Lớp Mai có 26 học sinh. Sáng nay, cả lớp tổ chức đi tham quan bảo tàng Hà Nội. Lúc cô giáo đến, thấy có 12 bạn đã đến. Hỏi còn bao nhiêu bạn chưa đến?",
+    "options": [
+      "38 bạn",
+      "14 bạn",
+      "18 bạn",
+      "12 bạn"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 7,
+    "prompt": "Gia đình Hồng Anh dự định chỉ ở Đà Nẵng 1 tuần và 3 ngày. Nhưng do dịch bệnh, gia đình Hồng Anh phải ở lại đó thêm 1 tuần nữa. Hỏi gia đình Hồng Anh đã ở Đà Nẵng bao nhiêu ngày?",
+    "options": [
+      "13 ngày",
+      "14 ngày",
+      "10 ngày",
+      "17 ngày"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 8,
+    "prompt": "Các bạn trong lớp đo chiều dài chiếc bảng. Minh đo được là 7 sải tay, Mai đo được là 9 sải tay, An đo được là 6 sải tay, Vân đo được là 10 sải tay. Hỏi bạn nào có sải tay ngắn nhất?",
+    "options": [
+      "Minh",
+      "An",
+      "Mai",
+      "Vân"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 9,
+    "prompt": "Hình dưới đây có bao nhiêu hình tam giác?",
+    "options": [
+      "6 hình",
+      "5 hình",
+      "4 hình",
+      "3 hình"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 7,
+    "index": 10,
+    "prompt": "An đi từ nhà đến trường hết 1 giờ. An bắt đầu đi từ nhà lúc 6 giờ sáng và đến trường lúc:",
+    "options": [
+      "7 giờ tối",
+      "7 giờ sáng",
+      "5 giờ sáng",
+      "8 giờ sáng"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 1,
+    "prompt": "55 đọc là:",
+    "options": [
+      "Năm mươi năm",
+      "Năm mươi lăm",
+      "Năm năm",
+      "Năm lăm"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 2,
+    "prompt": "Lớp 1A có 36 bạn. Trong đó có 10 bạn nữ. Hỏi lớp 1A có bao nhiêu bạn nam?",
+    "options": [
+      "46",
+      "16",
+      "10",
+      "26"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 3,
+    "prompt": "Đồng hồ dưới đây chỉ mấy giờ?",
+    "options": [
+      "12 giờ",
+      "11 giờ",
+      "10 giờ",
+      "9 giờ"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 4,
+    "prompt": "Lựa chọn phép so sánh đúng trong các phép tính dưới đây:",
+    "options": [
+      "77 – 7 – 0 = 77",
+      "65 – 30 < 33",
+      "90 + 5 > 94",
+      "63 = 36"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 5,
+    "prompt": "Cho các số sau: 78; 87; 94; 49. Số nào là số bé nhất?",
+    "options": [
+      "78",
+      "87",
+      "94",
+      "49"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 6,
+    "prompt": "Nga và Lan hái được 49 bông hoa, riêng Lan hái được 2 chục bông hoa. Hỏi Nga hái được bao nhiêu bông hoa?",
+    "options": [
+      "49",
+      "20",
+      "69",
+      "29"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 7,
+    "prompt": "Một ô tô chở 10 khách. Đến bến có 3 người xuống và 2 người lên. Hỏi trên xe bây giờ có bao nhiêu khách?",
+    "options": [
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 8,
+    "prompt": "Hình vẽ trên có số tam giác là:",
+    "options": [
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 9,
+    "prompt": "Bình hỏi Minh: “Năm nay chị của bạn bao nhiêu tuổi?”. Minh đáp: “Tuổi mình nhiều hơn 5 tuổi nhưng lại ít hơn 7 tuổi. Mình kém chị mình 4 tuổi” Hỏi chị của bạn Minh năm nay bao nhiêu tuổi?",
+    "options": [
+      "10",
+      "12",
+      "11",
+      "9"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 8,
+    "index": 10,
+    "prompt": "Thứ Tư của một tuần là ngày 11 trong tháng. Hỏi thứ Năm của tuần liền sau là ngày nào trong tháng?",
+    "options": [
+      "18",
+      "19",
+      "20",
+      "21"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 1,
+    "prompt": "Ô tô bắt đầu chạy lúc 6 giờ và đến Hải Phòng lúc 9 giờ. Hỏi từ Hà Nội đến Hải Phòng ô tô chạy hết mấy giờ?",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 2,
+    "prompt": "Hình vẽ có bao nhiêu hình tam giác?",
+    "options": [
+      "2",
+      "1",
+      "3",
+      "4"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 3,
+    "prompt": "Nhà Lam nuôi 4 con gà mái. Số gà trống bằng số gà mái. Hỏi nhà Lam nuôi tất cả bao nhiêu con gà?",
+    "options": [
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 4,
+    "prompt": "Số tròn chục lớn nhất có hai chữ số là",
+    "options": [
+      "60",
+      "70",
+      "80",
+      "90"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 5,
+    "prompt": "Bố đi công tác xa nhà 1 tuần lễ và 3 ngày. Hỏi bố đi công tác bao nhiêu ngày?",
+    "options": [
+      "4",
+      "7",
+      "10",
+      "8"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 6,
+    "prompt": "An có một số tấm thẻ. Sau khi mẹ mua cho An 3 chục tấm thẻ thì An có tất cả 50 tấm thẻ. Hỏi lúc đầu An có bao nhiêu tấm thẻ?",
+    "options": [
+      "30",
+      "50",
+      "20",
+      "80"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 7,
+    "prompt": "Hình vẽ dưới đây có bao nhiêu tam giác?",
+    "options": [
+      "8",
+      "4",
+      "6",
+      "7"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 8,
+    "prompt": "Hoà 6 tuổi, Bình ít hơn Hoà 2 tuổi. Tuổi Nga nhiều hơn Bình 1 tuổi. Hỏi bạn Nga bao nhiêu tuổi?",
+    "options": [
+      "5",
+      "7",
+      "8",
+      "9"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 9,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 23 + 45 + ...= 88",
+    "options": [
+      "43",
+      "15",
+      "48",
+      "20"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 9,
+    "index": 10,
+    "prompt": "Từ số 30 đến số 60, số các số có hai chữ số giống nhau là:",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 1,
+    "prompt": "An có 1 chục viên bi màu đỏ và 5 viên bi màu vàng. Vậy An có tất cả là ... viên.",
+    "options": [
+      "15",
+      "5",
+      "20",
+      "19"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 2,
+    "prompt": "Số lớn nhất trong các số: 15; 78; 40; 59 là:",
+    "options": [
+      "15",
+      "78",
+      "40",
+      "59"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 3,
+    "prompt": "Trong phòng có 75 cái ghế, người ta mang ra khỏi phòng 15 cái ghế. Hỏi trong phòng còn lại bao nhiêu cái ghế?",
+    "options": [
+      "80",
+      "50",
+      "60",
+      "70"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 4,
+    "prompt": "Số liền trước và số liền sau của 20 là:",
+    "options": [
+      "19 và 21",
+      "15 và 16",
+      "22 và 24",
+      "18 và 22"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 5,
+    "prompt": "Số lớn nhất có thể cộng với 3 được kết quả nhỏ hơn 10 là số:",
+    "options": [
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 6,
+    "prompt": "Hình vẽ dưới đây có bao nhiêu hình tam giác?",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 7,
+    "prompt": "Nam có một số kẹo là số lớn nhất có một chữ số. Hải có số kẹo ít hơn 2 chiếc. Hỏi Hải có bao nhiêu chiếc kẹo?",
+    "options": [
+      "7",
+      "9",
+      "11",
+      "Không có đáp án"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 8,
+    "prompt": "Tùng và Tâm mỗi bạn có 24 quả bóng. Hỏi cả hai bạn có tất cả mấy quả bóng?",
+    "options": [
+      "64",
+      "40",
+      "48",
+      "34"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 9,
+    "prompt": "Thứ Tư của một tuần là ngày 13. Hỏi thứ Hai của tuần liền trước là ngày nào trong tháng?",
+    "options": [
+      "6",
+      "7",
+      "4",
+      "9"
+    ],
+    "complete": true
+  },
+  {
+    "deck": 10,
+    "index": 10,
+    "prompt": "Cửa hàng có 63 chiếc xe đạp. Buổi sáng đã bán được 3 chục chiếc, buổi chiều bán thêm 3 chiếc nữa. Hỏi cửa hàng còn lại bao nhiêu chiếc xe đạp?",
+    "options": [
+      "30",
+      "33",
+      "36",
+      "40"
+    ],
+    "complete": true
+  }
+]

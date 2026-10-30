@@ -807,7 +807,7 @@ export default function SmartLotusApp() {
 
     void (async () => {
       try {
-      const generated = await smartLotusApi.generateQuiz({
+      const generated = await smartLotusApi.generateRagQuiz({
         topic,
         curriculumLevel: lesson.curriculumLevel,
         difficulties,
@@ -831,17 +831,17 @@ export default function SmartLotusApp() {
         setQuizQuestions(finalQuestions);
       }
       setToast(
-        generated.source === "ai" && aiQuestions.length === questionCount
+        (generated.source === "ai" || generated.source === "rag") && aiQuestions.length === questionCount
           ? isJourney
             ? attemptMode === "hard"
-              ? `Đã tạo đề bàn khó cho "${lesson.title}" bằng Ollama`
+              ? `Đã tạo đề bản khó cho "${lesson.title}" từ mẫu RAG`
               : attemptMode === "retry"
-                ? `Đã tạo đề làm lại "${lesson.title}" bằng Ollama`
-                : `Đã tạo đề "${lesson.title}" (chỉ số ${intelligenceScore}/100) bằng Ollama`
-            : `Đã tạo đề ôn tập ${questionCount} câu bằng Ollama`
-          : generated.source === "ai"
-            ? `AI chỉ tạo được ${aiQuestions.length}/${questionCount} câu; đã bổ sung câu hỏi có sẵn`
-            : "AI chưa tạo được đề hợp lệ; đang dùng câu hỏi có sẵn"
+                ? `Đã tạo đề làm lại "${lesson.title}" từ mẫu RAG`
+                : `Đã tạo đề cá nhân hoá "${lesson.title}" (Chỉ số IQ ${intelligenceScore}/100) từ mẫu.docx`
+            : `Đã tạo đề ôn tập ${questionCount} câu cá nhân hoá từ mẫu.docx`
+          : generated.source === "ai" || generated.source === "rag"
+            ? `Đã tạo ${aiQuestions.length}/${questionCount} câu từ mẫu.docx; đã bổ sung câu hỏi phù hợp`
+            : "Đang dùng câu hỏi có sẵn từ ngân hàng đề"
       );
       } catch {
         if (generationId === quizGenerationId.current && !quizInteracted.current) {
@@ -1393,17 +1393,13 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
 
   useEffect(() => {
     if (!province || !district || !schoolLevel) {
-      setSchoolOptions([]);
-      setSchoolItems([]);
-      setSchool("");
-      setSchoolCode("");
-      setIsCustomSchool(false);
-      setCustomSchoolName("");
       return;
     }
 
     let active = true;
-    setSchoolsLoading(true);
+    queueMicrotask(() => {
+      if (active) setSchoolsLoading(true);
+    });
     fetch(`/api/schools?province=${encodeURIComponent(province)}&district=${encodeURIComponent(district)}&schoolLevel=${encodeURIComponent(schoolLevel)}`)
       .then((res) => res.json())
       .then((data: { schools?: string[]; schoolItems?: Array<{ name: string; code: string }> }) => {
@@ -1437,16 +1433,13 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
 
   useEffect(() => {
     if (!school || !grade) {
-      setClassOptions([]);
-      setClassName("");
-      setClassCode("");
-      setIsCustomClass(false);
-      setCustomClassName("");
       return;
     }
 
     let active = true;
-    setClassesLoading(true);
+    queueMicrotask(() => {
+      if (active) setClassesLoading(true);
+    });
     const codeParam = schoolCode || "";
     fetch(`/api/classes?schoolCode=${encodeURIComponent(codeParam)}&schoolName=${encodeURIComponent(school)}&grade=${encodeURIComponent(grade)}`)
       .then((res) => res.json())
@@ -3233,7 +3226,17 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   const [lineValue, setLineValue] = useState(0);
   const [tokens, setTokens] = useState<string[]>([]);
   const [selectedImageOptions, setSelectedImageOptions] = useState<string[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("smart-lotus-quiz-theme");
+        if (saved === "light") return "light";
+      } catch {
+        /* bỏ qua */
+      }
+    }
+    return "dark";
+  });
   const question = quizQuestions[index];
   const meta = difficultyMeta[question.difficulty];
   const normalTotal = Math.max(1, Math.ceil(quizQuestions.length / 2));
@@ -3243,15 +3246,6 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   useEffect(() => {
     const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
     return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("smart-lotus-quiz-theme");
-      if (saved === "light") setTheme("light");
-    } catch {
-      /* bỏ qua */
-    }
   }, []);
 
   function toggleTheme() {

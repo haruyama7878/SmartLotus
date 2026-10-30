@@ -1,0 +1,400 @@
+ID 1 | Đề 1 - Câu 1
+Đề bài: Số liền trước và số liền sau của số 17 là:
+Lựa chọn: 15 và 16, 15 và 18, 16 và 18, 15 và 17
+
+ID 2 | Đề 1 - Câu 2
+Đề bài: Tìm số bé nhất trong các số sau:
+Lựa chọn: 62, 70, 68, 59
+
+ID 3 | Đề 1 - Câu 3
+Đề bài: An có 19 quả táo, An cho em 7 quả. Hỏi An còn bao quả táo?
+Lựa chọn: 10, 7, 26, 12
+
+ID 4 | Đề 1 - Câu 4
+Đề bài: Hình vẽ dưới đây có bao nhiêu đoạn thẳng?
+Lựa chọn: 4 đoạn, 5 đoạn, 6 đoạn, 2 đoạn
+
+ID 5 | Đề 1 - Câu 5
+Đề bài: Điền dấu >, <, = thích hợp vào chỗ chấm: 32 + 14 ... 14 + 33
+Lựa chọn: >, <, =, Đáp án khác
+
+ID 6 | Đề 1 - Câu 6
+Đề bài: Một quyển sách có 65 trang, Lan đã đọc hết 35 trang. Hỏi Lan còn phải đọc bao nhiêu trang nữa thì hết quyển sách?
+Lựa chọn: 28 trang, 30 trang, 100 trang, 35 trang
+
+ID 7 | Đề 1 - Câu 7
+Đề bài: Cần thêm bao nhiêu chấm tròn nữa để có tổng cộng 8 chấm tròn?
+Lựa chọn: 3 chấm, 4 chấm, 5 chấm, 2 chấm
+
+ID 8 | Đề 1 - Câu 8
+Đề bài: Nhà bạn Hoa nuôi 19 con gà, mẹ bạn Hoa đã bán 12 con. Sau đó mẹ biếu bà ngoại 2 con. Vậy nhà bạn Hoa còn lại bao nhiêu con gà?
+Lựa chọn: 10 con, 9 con, 7 con, 5 con
+
+ID 9 | Đề 1 - Câu 9
+Đề bài: Tìm giá trị của A + B + C + D + E
+Lựa chọn: 10, 11, 9, 13
+
+ID 10 | Đề 1 - Câu 10
+Đề bài: Tìm giá trị của A – B
+Lựa chọn: 2, 1, 6, 11
+
+ID 11 | Đề 2 - Câu 1
+Đề bài: Các số 78; 87; 56; 65; 34; 43 viết theo thứ tự từ bé đến lớn là:
+Lựa chọn: 34, 43, 65, 56, 78, 87, 87, 78, 65, 56, 43, 34, 43, 34, 65, 56, 87, 78, 34, 43, 56, 65, 78, 87
+
+ID 12 | Đề 2 - Câu 2
+Đề bài: Tính: 37 + 62 = ...
+Lựa chọn: 98, 99, 100, 89
+
+ID 13 | Đề 2 - Câu 3
+Đề bài: Đồng hồ dưới đây chỉ mấy giờ?
+Lựa chọn: 10 giờ, 7 giờ, 5 giờ, 12 giờ
+
+ID 14 | Đề 2 - Câu 4
+Đề bài: Lớp em có 20 học sinh nữ và 23 học sinh nam. Hỏi lớp em có tất cả bao nhiêu học sinh?
+Lựa chọn: 43 học sinh, 33 học sinh, 25 học sinh, 45 học sinh
+
+ID 15 | Đề 2 - Câu 5
+Đề bài: Một sợi dây dài 75 cm, bố cắt đi 35 cm. Hỏi sợi dây còn lại dài bao nhiêu xăng-ti-mét?
+Lựa chọn: 35 cm, 40 cm, 45 cm, 100 cm
+
+ID 16 | Đề 2 - Câu 6
+Đề bài: Mẹ đi công tác 19 ngày. Mẹ đã ở đó 1 tuần lễ. Hỏi mẹ còn phải ở đó mấy ngày nữa?
+Lựa chọn: 12 ngày, 18 ngày, 10 ngày, 26 ngày
+
+ID 17 | Đề 2 - Câu 7
+Đề bài: Số liền trước của số tròn chục lớn nhất có 2 chữ số là:
+Lựa chọn: 99, 90, 91, 89
+
+ID 18 | Đề 2 - Câu 8
+Đề bài: Nhà An nuôi ba chục con gà. Sáng nay mua thêm 5 con nữa. Hỏi nhà An có tất cả bao nhiêu con gà?
+Lựa chọn: 8 con, 35 con, 15 con, 25 con
+
+ID 19 | Đề 2 - Câu 9
+Đề bài: Cần bao nhiêu con cừu đặt vào đĩa cân bên phải để chiếc cân thăng bằng?
+Lựa chọn: 3 con, 2 con, 4 con, 8 con
+
+ID 20 | Đề 2 - Câu 10
+Đề bài: Ba đôi đũa có bao nhiêu chiếc đũa?
+Lựa chọn: 2 chiếc, 3 chiếc, 4 chiếc, 6 chiếc
+
+ID 21 | Đề 3 - Câu 1
+Đề bài: Điền số thích hợp vào chỗ chấm: 74 < ... < 76 là:
+Lựa chọn: 75, 73, 77, 78
+
+ID 22 | Đề 3 - Câu 2
+Đề bài: Số 98 là số liền sau của số nào?
+Lựa chọn: 99, 100, 97, 98
+
+ID 23 | Đề 3 - Câu 3
+Đề bài: Tìm kết quả của phép tính sau: 63 + 6 – 8 = ......
+Lựa chọn: 59, 68, 60, 61
+
+ID 24 | Đề 3 - Câu 4
+Đề bài: Sau khi cửa hàng đã bán được 4 chục chiếc xe đạp, thì còn 1 chục chiếc xe đạp nữa. Hỏi lúc đầu cửa hàng có tất cả bao nhiêu chiếc xe đạp?
+Lựa chọn: 30 chiếc, 50 chiếc, 40 chiếc, 5 chiếc
+
+ID 25 | Đề 3 - Câu 5
+Đề bài: Hình bên dưới có bao nhiêu điểm nằm bên ngoài hình tròn
+Lựa chọn: 2 điểm, 4 điểm, 6 điểm, Rất nhiều điểm
+
+ID 26 | Đề 3 - Câu 6
+Đề bài: Điền số thích hợp vào chỗ chấm: ... – 32 = 46
+Lựa chọn: 76, 14, 78, 24
+
+ID 27 | Đề 3 - Câu 7
+Đề bài: Em của Ngọc năm nay có số tuổi bằng kết quả của tổng 5 số nhỏ nhất khác nhau. Hỏi năm nay em của Ngọc bao nhiêu tuổi?
+Lựa chọn: 5 tuổi, 15 tuổi, 9 tuổi, 10 tuổi
+
+ID 28 | Đề 3 - Câu 8
+Đề bài: Hiện nay tuổi của hai anh em cộng lại là 14 tuổi. Hỏi 2 năm nữa tuổi hai anh em cộng lại là bao nhiêu.
+Lựa chọn: 16 tuổi, 18 tuổi, 14 tuổi, 20 tuổi
+
+ID 29 | Đề 3 - Câu 9
+Đề bài: Kết quả phép trừ của số lớn nhất có hai chữ số với số bé nhất có 2 chữ số khác nhau là:
+Lựa chọn: 88, 89, 99, 90
+
+ID 30 | Đề 3 - Câu 10
+Đề bài: Cho 3 chữ số 0; 1; 2; có tất cả bao nhiêu số có hai chữ số khác nhau được viết từ các chữ số trên?
+Lựa chọn: 2 số, 3 số, 4 số, 5 số
+
+ID 31 | Đề 4 - Câu 1
+Đề bài: Điền số thích hợp vào ô trống theo thứ tự từ trái sang phải:
+Lựa chọn: 99; 94, 99; 95, 95; 94, 89; 85
+
+ID 32 | Đề 4 - Câu 2
+Đề bài: Đồng hồ dưới đây chỉ mấy giờ?
+Lựa chọn: 12 giờ, 10 giờ, 8 giờ, 7 giờ
+
+ID 33 | Đề 4 - Câu 3
+Đề bài: Tính: 87 cm – 42 cm – 23 cm = ......
+Lựa chọn: 22 cm, 23 cm, 25 cm, 67 cm
+
+ID 34 | Đề 4 - Câu 4
+Đề bài: Nhà Nga có 36 con gà, mẹ Nga đem đi bán 13 con gà. Hỏi nhà Nga còn lại bao nhiêu con gà?
+Lựa chọn: 43 con gà, 49 con gà, 13 con gà, 23 con gà
+
+ID 35 | Đề 4 - Câu 5
+Đề bài: Số 84 đọc là:
+Lựa chọn: Tám bốn, Tám mươi tư, Bốn tám, Tư tám
+
+ID 36 | Đề 4 - Câu 6
+Đề bài: Điền dấu >, <, = thích hợp: 90 + 5 ...... 94
+Lựa chọn: >, <, =, Đáp án khác
+
+ID 37 | Đề 4 - Câu 7
+Đề bài: Hồng có 40 nhãn vở. Hồng cho em 20 nhãn vở. Sau đó mẹ mua thêm cho Hồng 10 nhãn vở nữa. Hỏi cuối cùng Hồng có tất cả bao nhiêu nhãn vở?
+Lựa chọn: 20 nhãn vở, 10 nhãn vở, 30 nhãn vở, 50 nhãn vở
+
+ID 38 | Đề 4 - Câu 8
+Đề bài: Phép tính nào sau đây có kết quả lớn nhất?
+Lựa chọn: 34 + 35, 55 + 11, 67 – 7, 44 + 12
+
+ID 39 | Đề 4 - Câu 9
+Đề bài: Điền số thích hợp vào chỗ chấm: 66 – 44 > ... > 57 – 37
+Lựa chọn: 23, 22, 20, 21
+
+ID 40 | Đề 4 - Câu 10
+Đề bài: Hình vẽ bên dưới có bao nhiêu điểm?
+Lựa chọn: 4 điểm, 5 điểm, 6 điểm, 7 điểm
+
+ID 41 | Đề 5 - Câu 1
+Đề bài: Điền số thích hợp vào chỗ chấm: 58 cm + 40 cm = ...... cm
+Lựa chọn: 18 cm, 98 cm, 99 cm, 88 cm
+
+ID 42 | Đề 5 - Câu 2
+Đề bài: Điền dấu >, <, = thích hợp vào chỗ chấm: 88 – 45 ...... 63 – 20
+Lựa chọn: >, <, =, Đáp án khác
+
+ID 43 | Đề 5 - Câu 3
+Đề bài: Mẹ hái được 85 quả hồng, mẹ đã bán 60 quả hồng. Hỏi mẹ còn lại bao nhiêu quả hồng?
+Lựa chọn: 20 quả hồng, 35 quả hồng, 30 quả hồng, 25 quả hồng
+
+ID 44 | Đề 5 - Câu 4
+Đề bài: Hình dưới đây có bao nhiêu đoạn thẳng?
+Lựa chọn: 4 đoạn, 5 đoạn, 6 đoạn, 7 đoạn
+
+ID 45 | Đề 5 - Câu 5
+Đề bài: Số gồm 9 chục và 6 đơn vị là:
+Lựa chọn: 96, 906, 69, 609
+
+ID 46 | Đề 5 - Câu 6
+Đề bài: Vào buổi sáng, kim dài chỉ số 12, kim ngắn chỉ số 7, lúc đó là mấy giờ?
+Lựa chọn: 12 giờ, 5 giờ, 19 giờ, 7 giờ
+
+ID 47 | Đề 5 - Câu 7
+Đề bài: Tìm số cộng với 3 rồi trừ đi 10 thì được 25.
+Lựa chọn: 34, 33, 32, 31
+
+ID 48 | Đề 5 - Câu 8
+Đề bài: Hai tuần lễ và 5 ngày thì bằng mấy ngày?
+Lựa chọn: 14 ngày, 7 ngày, 12 ngày, 19 ngày
+
+ID 49 | Đề 5 - Câu 9
+Đề bài: Tính tổng số liền trước và số liền sau của số 14.
+Lựa chọn: 27, 29, 28, 26
+
+ID 50 | Đề 5 - Câu 10
+Đề bài: An có ít hơn Bình 4 viên bi, Bình có ít hơn Minh 3 viên bi. Hỏi Căn có mấy viên bi? Biết rằng An có 5 viên bi.
+Lựa chọn: 12 viên bi, 9 viên bi, 8 viên bi, 7 viên bi
+
+ID 51 | Đề 6 - Câu 1
+Đề bài: Số nào bé nhất trong các số sau: 54, 29, 45, 38
+Lựa chọn: 54, 29, 45, 38
+
+ID 52 | Đề 6 - Câu 2
+Đề bài: Số bảy mươi mốt viết thế nào?
+Lựa chọn: 71, 17, 70, 77
+
+ID 53 | Đề 6 - Câu 3
+Đề bài: Tính: 38 – 32 + 32 = ......
+Lựa chọn: 32, 36, 38, 40
+
+ID 54 | Đề 6 - Câu 4
+Đề bài: Điền kết quả thích hợp vào chỗ chấm: 75 cm – 5 cm + 8 cm = .........
+Lựa chọn: 70 cm, 75 cm, 77 cm, 78 cm
+
+ID 55 | Đề 6 - Câu 5
+Đề bài: Hình dưới đây có bao nhiêu hình tam giác?
+Lựa chọn: 3 hình, 5 hình, 2 hình, 6 hình
+
+ID 56 | Đề 6 - Câu 6
+Đề bài: An đang nghĩ đến một số có hai chữ số mà số hàng chục là số lớn nhất có 1 chữ số, số hàng đơn vị là số nhỏ nhất có 1 chữ số. Số An nghĩ đến là số nào?
+Lựa chọn: 19, 91, 90, 99
+
+ID 57 | Đề 6 - Câu 7
+Đề bài: Một hộp bút chì có 10 chiếc bút. Bình quyên góp 5 hộp như vậy gửi đến các bạn nhỏ ở miền Trung. Hỏi Bình quyên góp tất cả bao nhiêu chiếc bút chì?
+Lựa chọn: 15 chiếc, 50 chiếc, 5 chiếc, 500 chiếc
+
+ID 58 | Đề 6 - Câu 8
+Đề bài: Trong xe buýt có 14 người. Khi xe dừng tại bến, có 15 người lên xe và 13 người xuống xe. Hỏi lúc đó xe buýt có bao nhiêu người?
+Lựa chọn: 15 người, 29 người, 25 người, 16 người
+
+ID 59 | Đề 6 - Câu 9
+Đề bài: Số liền sau trừ đi số liền trước của cùng một số thì có kết quả bằng bao nhiêu?
+Lựa chọn: 1, 2, 3, 4
+
+ID 60 | Đề 6 - Câu 10
+Đề bài: Lớp 1A thuê một chiếc xe loại 36 chỗ ngồi để đi tham quan vịnh Hạ Long (tính cả chỗ ngồi của cô giáo). Khi cô giáo cùng cả lớp lên xe ngồi thì xe còn thừa 3 ghế trống. Hỏi lớp 1A có bao nhiêu học sinh?
+Lựa chọn: 39 học sinh, 30 học sinh, 33 học sinh, 32 học sinh
+
+ID 61 | Đề 7 - Câu 1
+Đề bài: Hôm nay là thứ Hai ngày 10. Hôm qua là:
+Lựa chọn: Chủ Nhật ngày 9, Thứ Ba ngày 11, Thứ Bảy ngày 9, Thứ Ba ngày 9
+
+ID 62 | Đề 7 - Câu 2
+Đề bài: Số 65 đọc là:
+Lựa chọn: Sáu năm, Sáu mươi năm, Sáu mươi lăm, Năm mươi sáu
+
+ID 63 | Đề 7 - Câu 3
+Đề bài: Long có 15 quả bóng bay xanh và đỏ, trong đó có 4 quả bóng bay màu xanh. Hỏi Long có bao nhiêu quả bóng bay màu đỏ?
+Lựa chọn: 19 quả, 11 quả, 10 quả, 12 quả
+
+ID 64 | Đề 7 - Câu 4
+Đề bài: Các số lớn hơn 87 và nhỏ hơn 90 là:
+Lựa chọn: 87; 88; 89; 90, 87; 88; 89, 88; 89; 90, 88; 89
+
+ID 65 | Đề 7 - Câu 5
+Đề bài: Số 70 gồm:
+Lựa chọn: 7 chục và 10 đơn vị, 7 chục và 0 đơn vị, 70 chục và 10 đơn vị, 70 chục và 0 đơn vị
+
+ID 66 | Đề 7 - Câu 6
+Đề bài: Lớp Mai có 26 học sinh. Sáng nay, cả lớp tổ chức đi tham quan bảo tàng Hà Nội. Lúc cô giáo đến, thấy có 12 bạn đã đến. Hỏi còn bao nhiêu bạn chưa đến?
+Lựa chọn: 38 bạn, 14 bạn, 18 bạn, 12 bạn
+
+ID 67 | Đề 7 - Câu 7
+Đề bài: Gia đình Hồng Anh dự định chỉ ở Đà Nẵng 1 tuần và 3 ngày. Nhưng do dịch bệnh, gia đình Hồng Anh phải ở lại đó thêm 1 tuần nữa. Hỏi gia đình Hồng Anh đã ở Đà Nẵng bao nhiêu ngày?
+Lựa chọn: 13 ngày, 14 ngày, 10 ngày, 17 ngày
+
+ID 68 | Đề 7 - Câu 8
+Đề bài: Các bạn trong lớp đo chiều dài chiếc bảng. Minh đo được là 7 sải tay, Mai đo được là 9 sải tay, An đo được là 6 sải tay, Vân đo được là 10 sải tay. Hỏi bạn nào có sải tay ngắn nhất?
+Lựa chọn: Minh, An, Mai, Vân
+
+ID 69 | Đề 7 - Câu 9
+Đề bài: Hình dưới đây có bao nhiêu hình tam giác?
+Lựa chọn: 6 hình, 5 hình, 4 hình, 3 hình
+
+ID 70 | Đề 7 - Câu 10
+Đề bài: An đi từ nhà đến trường hết 1 giờ. An bắt đầu đi từ nhà lúc 6 giờ sáng và đến trường lúc:
+Lựa chọn: 7 giờ tối, 7 giờ sáng, 5 giờ sáng, 8 giờ sáng
+
+ID 71 | Đề 8 - Câu 1
+Đề bài: 55 đọc là:
+Lựa chọn: Năm mươi năm, Năm mươi lăm, Năm năm, Năm lăm
+
+ID 72 | Đề 8 - Câu 2
+Đề bài: Lớp 1A có 36 bạn. Trong đó có 10 bạn nữ. Hỏi lớp 1A có bao nhiêu bạn nam?
+Lựa chọn: 46, 16, 10, 26
+
+ID 73 | Đề 8 - Câu 3
+Đề bài: Đồng hồ dưới đây chỉ mấy giờ?
+Lựa chọn: 12 giờ, 11 giờ, 10 giờ, 9 giờ
+
+ID 74 | Đề 8 - Câu 4
+Đề bài: Lựa chọn phép so sánh đúng trong các phép tính dưới đây:
+Lựa chọn: 77 – 7 – 0 = 77, 65 – 30 < 33, 90 + 5 > 94, 63 = 36
+
+ID 75 | Đề 8 - Câu 5
+Đề bài: Cho các số sau: 78; 87; 94; 49. Số nào là số bé nhất?
+Lựa chọn: 78, 87, 94, 49
+
+ID 76 | Đề 8 - Câu 6
+Đề bài: Nga và Lan hái được 49 bông hoa, riêng Lan hái được 2 chục bông hoa. Hỏi Nga hái được bao nhiêu bông hoa?
+Lựa chọn: 49, 20, 69, 29
+
+ID 77 | Đề 8 - Câu 7
+Đề bài: Một ô tô chở 10 khách. Đến bến có 3 người xuống và 2 người lên. Hỏi trên xe bây giờ có bao nhiêu khách?
+Lựa chọn: 7, 8, 9, 10
+
+ID 78 | Đề 8 - Câu 8
+Đề bài: Hình vẽ trên có số tam giác là:
+Lựa chọn: 4, 5, 6, 7
+
+ID 79 | Đề 8 - Câu 9
+Đề bài: Bình hỏi Minh: “Năm nay chị của bạn bao nhiêu tuổi?”. Minh đáp: “Tuổi mình nhiều hơn 5 tuổi nhưng lại ít hơn 7 tuổi. Mình kém chị mình 4 tuổi” Hỏi chị của bạn Minh năm nay bao nhiêu tuổi?
+Lựa chọn: 10, 12, 11, 9
+
+ID 80 | Đề 8 - Câu 10
+Đề bài: Thứ Tư của một tuần là ngày 11 trong tháng. Hỏi thứ Năm của tuần liền sau là ngày nào trong tháng?
+Lựa chọn: 18, 19, 20, 21
+
+ID 81 | Đề 9 - Câu 1
+Đề bài: Ô tô bắt đầu chạy lúc 6 giờ và đến Hải Phòng lúc 9 giờ. Hỏi từ Hà Nội đến Hải Phòng ô tô chạy hết mấy giờ?
+Lựa chọn: 1, 2, 3, 4
+
+ID 82 | Đề 9 - Câu 2
+Đề bài: Hình vẽ có bao nhiêu hình tam giác?
+Lựa chọn: 2, 1, 3, 4
+
+ID 83 | Đề 9 - Câu 3
+Đề bài: Nhà Lam nuôi 4 con gà mái. Số gà trống bằng số gà mái. Hỏi nhà Lam nuôi tất cả bao nhiêu con gà?
+Lựa chọn: 7, 8, 9, 10
+
+ID 84 | Đề 9 - Câu 4
+Đề bài: Số tròn chục lớn nhất có hai chữ số là
+Lựa chọn: 60, 70, 80, 90
+
+ID 85 | Đề 9 - Câu 5
+Đề bài: Bố đi công tác xa nhà 1 tuần lễ và 3 ngày. Hỏi bố đi công tác bao nhiêu ngày?
+Lựa chọn: 4, 7, 10, 8
+
+ID 86 | Đề 9 - Câu 6
+Đề bài: An có một số tấm thẻ. Sau khi mẹ mua cho An 3 chục tấm thẻ thì An có tất cả 50 tấm thẻ. Hỏi lúc đầu An có bao nhiêu tấm thẻ?
+Lựa chọn: 30, 50, 20, 80
+
+ID 87 | Đề 9 - Câu 7
+Đề bài: Hình vẽ dưới đây có bao nhiêu tam giác?
+Lựa chọn: 8, 4, 6, 7
+
+ID 88 | Đề 9 - Câu 8
+Đề bài: Hoà 6 tuổi, Bình ít hơn Hoà 2 tuổi. Tuổi Nga nhiều hơn Bình 1 tuổi. Hỏi bạn Nga bao nhiêu tuổi?
+Lựa chọn: 5, 7, 8, 9
+
+ID 89 | Đề 9 - Câu 9
+Đề bài: Điền số thích hợp vào chỗ chấm: 23 + 45 + ...= 88
+Lựa chọn: 43, 15, 48, 20
+
+ID 90 | Đề 9 - Câu 10
+Đề bài: Từ số 30 đến số 60, số các số có hai chữ số giống nhau là:
+Lựa chọn: 1, 2, 3, 4
+
+ID 91 | Đề 10 - Câu 1
+Đề bài: An có 1 chục viên bi màu đỏ và 5 viên bi màu vàng. Vậy An có tất cả là ... viên.
+Lựa chọn: 15, 5, 20, 19
+
+ID 92 | Đề 10 - Câu 2
+Đề bài: Số lớn nhất trong các số: 15; 78; 40; 59 là:
+Lựa chọn: 15, 78, 40, 59
+
+ID 93 | Đề 10 - Câu 3
+Đề bài: Trong phòng có 75 cái ghế, người ta mang ra khỏi phòng 15 cái ghế. Hỏi trong phòng còn lại bao nhiêu cái ghế?
+Lựa chọn: 80, 50, 60, 70
+
+ID 94 | Đề 10 - Câu 4
+Đề bài: Số liền trước và số liền sau của 20 là:
+Lựa chọn: 19 và 21, 15 và 16, 22 và 24, 18 và 22
+
+ID 95 | Đề 10 - Câu 5
+Đề bài: Số lớn nhất có thể cộng với 3 được kết quả nhỏ hơn 10 là số:
+Lựa chọn: 4, 5, 6, 7
+
+ID 96 | Đề 10 - Câu 6
+Đề bài: Hình vẽ dưới đây có bao nhiêu hình tam giác?
+Lựa chọn: 1, 2, 3, 4
+
+ID 97 | Đề 10 - Câu 7
+Đề bài: Nam có một số kẹo là số lớn nhất có một chữ số. Hải có số kẹo ít hơn 2 chiếc. Hỏi Hải có bao nhiêu chiếc kẹo?
+Lựa chọn: 7, 9, 11, Không có đáp án
+
+ID 98 | Đề 10 - Câu 8
+Đề bài: Tùng và Tâm mỗi bạn có 24 quả bóng. Hỏi cả hai bạn có tất cả mấy quả bóng?
+Lựa chọn: 64, 40, 48, 34
+
+ID 99 | Đề 10 - Câu 9
+Đề bài: Thứ Tư của một tuần là ngày 13. Hỏi thứ Hai của tuần liền trước là ngày nào trong tháng?
+Lựa chọn: 6, 7, 4, 9
+
+ID 100 | Đề 10 - Câu 10
+Đề bài: Cửa hàng có 63 chiếc xe đạp. Buổi sáng đã bán được 3 chục chiếc, buổi chiều bán thêm 3 chiếc nữa. Hỏi cửa hàng còn lại bao nhiêu chiếc xe đạp?
+Lựa chọn: 30, 33, 36, 40
+

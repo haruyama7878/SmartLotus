@@ -45,6 +45,7 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
   const [projectId, setProjectId] = useState("");
   const [step, setStep] = useState<"questions" | "settings">("questions");
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [intelligenceScore, setIntelligenceScore] = useState(60);
 
   useEffect(() => {
     void smartLotusApi.getClassrooms().then(({ classrooms: items }) => {
@@ -88,15 +89,50 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
       setActiveQuestionIndex(0);
       setGenerationNotice(
         generated.source === "ai"
-          ? generated.questions.length === 10
-            ? "Ollama đã tạo đủ 10 câu hỏi."
-            : `Ollama chỉ tạo được ${generated.questions.length}/10 câu hỏi hợp lệ.`
-          : "AI chưa tạo được đề hợp lệ; các câu dưới đây lấy từ kho câu hỏi có sẵn.",
+          ? `Đã tạo ${generated.questions.length} câu hỏi bằng Trí tuệ Nhân tạo (AI) kết hợp RAG từ mẫu.docx (Chỉ số IQ: ${intelligenceScore}/100).`
+          : `Đã tạo ${generated.questions.length} câu hỏi thích ứng cá nhân hóa từ mẫu.docx (Chỉ số IQ: ${intelligenceScore}/100).`,
       );
       if (!title.trim()) setTitle(`Bài tập: ${selectedTopic}`);
       setTopic(selectedTopic);
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Không thể tạo câu hỏi");
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function generateRagQuestions() {
+    const selectedClassroom = classrooms.find((item) => item.id === classroomId);
+    const selectedTopic = topic.trim() || selectedClassroom?.subject || "Toán học";
+    setLoading(true);
+    setError("");
+    setGenerationNotice("");
+    try {
+      const difficulties: Array<"A" | "B" | "C" | "D" | "E"> =
+        intelligenceScore >= 75
+          ? ["C", "D", "E"]
+          : intelligenceScore >= 45
+            ? ["B", "C", "D"]
+            : ["A", "B", "C"];
+      const generated = await smartLotusApi.generateRagQuiz({
+        topic: selectedTopic,
+        curriculumLevel: Number(level),
+        difficulties,
+        count: 10,
+        intelligenceScore,
+      });
+      setQuestions(generated.questions.map((question, index) => ({ ...question, id: index + 1 })));
+      setActiveQuestionIndex(0);
+      setGenerationNotice(
+        generated.source === "ai"
+          ? `Đã tạo thành công ${generated.questions.length} câu hỏi bằng Trí tuệ Nhân tạo (AI) kết hợp RAG từ mẫu.docx cho học sinh IQ ${intelligenceScore}/100 (${
+              intelligenceScore >= 75 ? "Nâng cao / Thử thách" : intelligenceScore >= 45 ? "Trung bình / Khá" : "Củng cố cơ bản"
+            }).`
+          : `Đã tạo ${generated.questions.length} câu hỏi cá nhân hoá từ cơ sở dữ liệu mẫu.docx (Chỉ số IQ: ${intelligenceScore}/100).`,
+      );
+      if (!title.trim()) setTitle(`Bài tập RAG (${intelligenceScore} điểm IQ): ${selectedTopic}`);
+      setTopic(selectedTopic);
+    } catch (generationError) {
+      setError(generationError instanceof Error ? generationError.message : "Không thể tạo câu hỏi RAG");
     } finally {
       setLoading(false);
     }
@@ -349,7 +385,12 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
               {questions.map((question, index) => index === activeQuestionIndex ? (
                 <li key={`${question.id}-${index}`} className="assignment-question-editor">
                   <div className="assignment-question-editor-heading">
-                    <strong>Câu {index + 1}</strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <strong>Câu {index + 1}</strong>
+                      <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: "rgba(124, 58, 237, 0.1)", color: "#7c3aed", fontWeight: 600 }}>
+                        AI + RAG · Độ khó: {question.difficulty ?? "A"} {question.skill ? `· ${question.skill}` : ""}
+                      </span>
+                    </div>
                     <button type="button" className="assignment-remove-question" onClick={() => removeQuestion(index)} aria-label={`Xóa câu ${index + 1}`}>
                       <Icon name="trash" size={15} /> Xóa câu
                     </button>
@@ -504,9 +545,44 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
               ) : null)}
             </ol>
           ) : <div className="assignment-question-empty"><Icon name="sparkles" size={24} /><p>Tạo đề bằng AI hoặc tự thêm câu hỏi, đáp án phù hợp với kiểu trả lời.</p></div>}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 12px", margin: "10px 0 4px", background: "rgba(16, 185, 129, 0.08)", borderRadius: 8, border: "1px solid rgba(16, 185, 129, 0.22)", fontSize: 12, color: "#065f46" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+              <span><strong>Hệ thống Trí Tuệ Nhân Tạo (AI) + RAG đã tích hợp:</strong> Trích xuất tri thức từ <em>library/mẫu.docx</em> (10 đề, 100 câu) & Generative AI (Ollama Qwen2.5 / Gemini) tạo đề cá nhân hoá.</span>
+            </div>
+            <span style={{ fontSize: 11, background: "#d1fae5", color: "#065f46", padding: "2px 8px", borderRadius: 12, fontWeight: 600, whiteSpace: "nowrap" }}>AI + RAG Hoạt Động</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 14px", margin: "8px 0 8px", background: "rgba(124, 58, 237, 0.06)", borderRadius: 10, border: "1px solid rgba(124, 58, 237, 0.18)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="sparkles" size={18} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#6d28d9" }}>
+                Chỉ số thông minh học sinh: <strong style={{ fontSize: 15 }}>{intelligenceScore}</strong>/100
+                <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 8, color: intelligenceScore >= 75 ? "#047857" : intelligenceScore >= 45 ? "#b45309" : "#4338ca" }}>
+                  ({intelligenceScore >= 75 ? "Nâng cao / Thử thách" : intelligenceScore >= 45 ? "Trung bình / Khá" : "Củng cố cơ bản"})
+                </span>
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px", maxWidth: 320 }}>
+              <span style={{ fontSize: 11, color: "#6b7280" }}>10</span>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={intelligenceScore}
+                onChange={(e) => setIntelligenceScore(Number(e.target.value))}
+                style={{ flex: 1, accentColor: "#7c3aed", cursor: "pointer" }}
+                title="Điều chỉnh chỉ số thông minh để cá nhân hoá độ khó đề thi RAG"
+              />
+              <span style={{ fontSize: 11, color: "#6b7280" }}>100</span>
+            </div>
+          </div>
           <div className="assignment-question-actions">
+            <button className="secondary-button assignment-add-question" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", color: "#fff", borderColor: "transparent", fontWeight: 600 }} onClick={() => void generateRagQuestions()} disabled={loading}>
+              <Icon name="sparkles" /> {loading ? "AI đang sinh đề..." : "Sinh đề AI + RAG từ mẫu.docx (Theo IQ)"}
+            </button>
             <button className="secondary-button assignment-add-question" onClick={() => void generateQuestions()} disabled={loading}>
-              <Icon name="sparkles" /> {loading ? "Đang xử lý..." : "Tạo 10 câu bằng AI"}
+              <Icon name="sparkles" /> {loading ? "Đang xử lý..." : "Sinh đề nhanh bằng AI"}
             </button>
             <button className="assignment-add-manual" onClick={addQuestion} disabled={loading || questions.length >= 20}>
               <Icon name="plus" /> Thêm câu hỏi

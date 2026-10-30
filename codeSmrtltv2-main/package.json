@@ -7,9 +7,12 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node scripts/verify_system.mjs",
     "db:seed": "node --experimental-strip-types scripts/seed-curriculum.mjs",
     "db:push": "drizzle-kit push",
-    "db:migrate:legacy": "node scripts/migrate-legacy-data.mjs"
+    "db:migrate:legacy": "node scripts/migrate-legacy-data.mjs",
+    "ai:serve": "ollama serve",
+    "ai:pull": "ollama pull qwen2.5:1.5b"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",

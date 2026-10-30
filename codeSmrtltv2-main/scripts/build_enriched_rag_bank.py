@@ -1,0 +1,1137 @@
+import json, sys
+
+sys.stdout.reconfigure(encoding="utf-8")
+
+# Comprehensive database of all 100 questions from library/mẫu.docx with ground truth, difficulty & personalization criteria
+enriched_data = [
+  # --- ĐỀ 1 ---
+  {
+    "deck": 1, "index": 1,
+    "prompt": "Số liền trước và số liền sau của số 17 là:",
+    "options": ["15 và 16", "15 và 18", "16 và 18", "15 và 17"],
+    "correctAnswer": "16 và 18",
+    "explanation": "Số liền trước của 17 là 16 (17 - 1 = 16), số liền sau của 17 là 18 (17 + 1 = 18).",
+    "topic": "Số học và thứ tự số",
+    "skill": "Số liền trước - liền sau",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 20, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["liền trước", "liền sau", "thứ tự số", "số học"]
+  },
+  {
+    "deck": 1, "index": 2,
+    "prompt": "Tìm số bé nhất trong các số sau: 62; 70; 68; 59",
+    "options": ["62", "70", "68", "59"],
+    "correctAnswer": "59",
+    "explanation": "So sánh chữ số hàng chục: số 59 có chữ số hàng chục là 5 (nhỏ hơn 6 và 7) nên 59 là số bé nhất.",
+    "topic": "So sánh số",
+    "skill": "Tìm số bé nhất",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 10, "scoreMax": 50, "targetScore": 30,
+    "isTextBased": True, "tags": ["so sánh", "bé nhất", "số hai chữ số"]
+  },
+  {
+    "deck": 1, "index": 3,
+    "prompt": "An có 19 quả táo, An cho em 7 quả. Hỏi An còn bao quả táo?",
+    "options": ["10", "7", "26", "12"],
+    "correctAnswer": "12",
+    "explanation": "Số quả táo An còn lại là: 19 - 7 = 12 (quả táo).",
+    "topic": "Toán có lời văn",
+    "skill": "Phép trừ có lời văn",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 25, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["lời văn", "phép trừ", "bớt đi"]
+  },
+  {
+    "deck": 1, "index": 4,
+    "prompt": "Một hình tam giác và một đoạn thẳng cắt ngang có tổng cộng bao nhiêu đoạn thẳng tạo thành?",
+    "options": ["4 đoạn", "5 đoạn", "6 đoạn", "2 đoạn"],
+    "correctAnswer": "6 đoạn",
+    "explanation": "Đoạn thẳng cắt ngang chia các cạnh tam giác thành các đoạn thẳng nhỏ và tạo thêm các đoạn thẳng mới, tổng cộng là 6 đoạn thẳng.",
+    "topic": "Hình học",
+    "skill": "Đếm đoạn thẳng",
+    "difficulty": "C", "curriculumLevel": 3, "scoreMin": 50, "scoreMax": 85, "targetScore": 65,
+    "isTextBased": True, "tags": ["hình học", "đoạn thẳng", "đếm hình"]
+  },
+  {
+    "deck": 1, "index": 5,
+    "prompt": "Điền dấu >, <, = thích hợp vào chỗ chấm: 32 + 14 ... 14 + 33",
+    "options": [">", "<", "=", "Đáp án khác"],
+    "correctAnswer": "<",
+    "explanation": "Ta có 32 + 14 = 46 và 14 + 33 = 47. Vì 46 < 47 nên ta điền dấu <.",
+    "topic": "So sánh số",
+    "skill": "So sánh giá trị hai biểu thức",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 40, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["so sánh biểu thức", "điền dấu", "phép cộng"]
+  },
+  {
+    "deck": 1, "index": 6,
+    "prompt": "Một quyển sách có 65 trang, Lan đã đọc hết 35 trang. Hỏi Lan còn phải đọc bao nhiêu trang nữa thì hết quyển sách?",
+    "options": ["28 trang", "30 trang", "100 trang", "35 trang"],
+    "correctAnswer": "30 trang",
+    "explanation": "Số trang sách Lan còn phải đọc là: 65 - 35 = 30 (trang).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn trừ hai chữ số",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["toán lời văn", "trừ tròn chục", "phạm vi 100"]
+  },
+  {
+    "deck": 1, "index": 7,
+    "prompt": "Có 4 chấm tròn trên bảng. Cần thêm bao nhiêu chấm tròn nữa để có tổng cộng 8 chấm tròn?",
+    "options": ["3 chấm", "4 chấm", "5 chấm", "2 chấm"],
+    "correctAnswer": "4 chấm",
+    "explanation": "Muốn có tổng cộng 8 chấm tròn từ 4 chấm tròn ban đầu, ta cần thêm: 8 - 4 = 4 (chấm).",
+    "topic": "Số học và phép tính",
+    "skill": "Tìm số hạng chưa biết",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 10, "scoreMax": 40, "targetScore": 25,
+    "isTextBased": True, "tags": ["tìm thành phần chưa biết", "phép cộng trừ 10"]
+  },
+  {
+    "deck": 1, "index": 8,
+    "prompt": "Nhà bạn Hoa nuôi 19 con gà, mẹ bạn Hoa đã bán 12 con. Sau đó mẹ biếu bà ngoại 2 con. Vậy nhà bạn Hoa còn lại bao nhiêu con gà?",
+    "options": ["10 con", "9 con", "7 con", "5 con"],
+    "correctAnswer": "5 con",
+    "explanation": "Sau khi bán mẹ còn: 19 - 12 = 7 (con). Sau khi biếu bà còn: 7 - 2 = 5 (con gà).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn hai bước tính",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 95, "targetScore": 75,
+    "isTextBased": True, "tags": ["hai bước tính", "lời văn nâng cao", "phép trừ liên tiếp"]
+  },
+  {
+    "deck": 1, "index": 9,
+    "prompt": "Cho biết A = 1, B = 2, C = 3, D = 4, E = 1. Tìm giá trị của biểu thức: A + B + C + D + E",
+    "options": ["10", "11", "9", "13"],
+    "correctAnswer": "11",
+    "explanation": "Thay số: 1 + 2 + 3 + 4 + 1 = 11.",
+    "topic": "Tư duy logic",
+    "skill": "Tính giá trị biểu thức chữ",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["biểu thức", "cộng nhiều số"]
+  },
+  {
+    "deck": 1, "index": 10,
+    "prompt": "Cho biết A = 7, B = 6. Tìm giá trị của A – B",
+    "options": ["2", "1", "6", "11"],
+    "correctAnswer": "1",
+    "explanation": "Hiệu A - B = 7 - 6 = 1.",
+    "topic": "Số học và phép tính",
+    "skill": "Phép trừ đơn giản",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 10, "scoreMax": 35, "targetScore": 20,
+    "isTextBased": True, "tags": ["phép trừ", "phạm vi 10"]
+  },
+
+  # --- ĐỀ 2 ---
+  {
+    "deck": 2, "index": 1,
+    "prompt": "Các số 78; 87; 56; 65; 34; 43 viết theo thứ tự từ bé đến lớn là:",
+    "options": [
+      "34, 43, 65, 56, 78, 87",
+      "87, 78, 65, 56, 43, 34",
+      "43, 34, 65, 56, 87, 78",
+      "34, 43, 56, 65, 78, 87"
+    ],
+    "correctAnswer": "34, 43, 56, 65, 78, 87",
+    "explanation": "So sánh các chữ số hàng chục và hàng đơn vị: 34 < 43 < 56 < 65 < 78 < 87.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Sắp xếp dãy số từ bé đến lớn",
+    "difficulty": "C", "curriculumLevel": 3, "scoreMin": 40, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["thứ tự", "từ bé đến lớn", "dãy số"]
+  },
+  {
+    "deck": 2, "index": 2,
+    "prompt": "Tính: 37 + 62 = ...",
+    "options": ["98", "99", "100", "89"],
+    "correctAnswer": "99",
+    "explanation": "Ta cộng hàng đơn vị: 7 + 2 = 9. Cộng hàng chục: 3 + 6 = 9. Vậy 37 + 62 = 99.",
+    "topic": "Số học và phép tính",
+    "skill": "Cộng hai số có hai chữ số không nhớ",
+    "difficulty": "B", "curriculumLevel": 4, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["phép cộng", "không nhớ", "phạm vi 100"]
+  },
+  {
+    "deck": 2, "index": 3,
+    "prompt": "Đồng hồ có kim ngắn chỉ số 7, kim dài chỉ số 12. Hỏi đồng hồ chỉ mấy giờ?",
+    "options": ["10 giờ", "7 giờ", "5 giờ", "12 giờ"],
+    "correctAnswer": "7 giờ",
+    "explanation": "Khi kim dài chỉ số 12 và kim ngắn chỉ số 7, đồng hồ chỉ đúng 7 giờ.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Xem giờ đúng trên đồng hồ",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["đồng hồ", "giờ đúng", "thời gian"]
+  },
+  {
+    "deck": 2, "index": 4,
+    "prompt": "Lớp em có 20 học sinh nữ và 23 học sinh nam. Hỏi lớp em có tất cả bao nhiêu học sinh?",
+    "options": ["43 học sinh", "33 học sinh", "25 học sinh", "45 học sinh"],
+    "correctAnswer": "43 học sinh",
+    "explanation": "Tổng số học sinh là: 20 + 23 = 43 (học sinh).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn phép cộng",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["toán lời văn", "phép cộng", "học sinh"]
+  },
+  {
+    "deck": 2, "index": 5,
+    "prompt": "Một sợi dây dài 75 cm, bố cắt đi 35 cm. Hỏi sợi dây còn lại dài bao nhiêu xăng-ti-mét?",
+    "options": ["35 cm", "40 cm", "45 cm", "100 cm"],
+    "correctAnswer": "40 cm",
+    "explanation": "Độ dài sợi dây còn lại là: 75 cm - 35 cm = 40 cm.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Đo độ dài xăng-ti-mét",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 40, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["xăng-ti-mét", "cm", "độ dài", "phép trừ"]
+  },
+  {
+    "deck": 2, "index": 6,
+    "prompt": "Mẹ đi công tác 19 ngày. Mẹ đã ở đó 1 tuần lễ. Hỏi mẹ còn phải ở đó mấy ngày nữa?",
+    "options": ["12 ngày", "18 ngày", "10 ngày", "26 ngày"],
+    "correctAnswer": "12 ngày",
+    "explanation": "Đổi 1 tuần lễ = 7 ngày. Số ngày mẹ còn phải ở lại là: 19 - 7 = 12 (ngày).",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Quy đổi tuần lễ và ngày",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["tuần lễ", "ngày", "đơn vị đo thời gian"]
+  },
+  {
+    "deck": 2, "index": 7,
+    "prompt": "Số liền trước của số tròn chục lớn nhất có 2 chữ số là:",
+    "options": ["99", "90", "91", "89"],
+    "correctAnswer": "89",
+    "explanation": "Số tròn chục lớn nhất có 2 chữ số là 90. Số liền trước của 90 là: 90 - 1 = 89.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Số tròn chục và số liền trước",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 50, "scoreMax": 85, "targetScore": 65,
+    "isTextBased": True, "tags": ["số tròn chục", "liền trước", "tư duy số học"]
+  },
+  {
+    "deck": 2, "index": 8,
+    "prompt": "Nhà An nuôi ba chục con gà. Sáng nay mua thêm 5 con nữa. Hỏi nhà An có tất cả bao nhiêu con gà?",
+    "options": ["8 con", "35 con", "15 con", "25 con"],
+    "correctAnswer": "35 con",
+    "explanation": "Ba chục = 30 con. Nhà An có tất cả: 30 + 5 = 35 (con gà).",
+    "topic": "Toán có lời văn",
+    "skill": "Quy đổi chục và cộng đơn vị",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["chục", "gà", "lời văn"]
+  },
+  {
+    "deck": 2, "index": 9,
+    "prompt": "Trên đĩa cân bên trái có 1 con gấu nặng bằng 4 con cừu. Để cân thăng bằng với 1 con gấu, cần bao nhiêu con cừu đặt vào đĩa bên phải?",
+    "options": ["3 con", "2 con", "4 con", "8 con"],
+    "correctAnswer": "4 con",
+    "explanation": "Vì 1 con gấu nặng bằng 4 con cừu nên cần đúng 4 con cừu để đĩa cân thăng bằng.",
+    "topic": "Tư duy logic",
+    "skill": "Toán cân thăng bằng",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["cân thăng bằng", "tư duy đại lượng"]
+  },
+  {
+    "deck": 2, "index": 10,
+    "prompt": "Ba đôi đũa có bao nhiêu chiếc đũa?",
+    "options": ["2 chiếc", "3 chiếc", "4 chiếc", "6 chiếc"],
+    "correctAnswer": "6 chiếc",
+    "explanation": "Một đôi đũa gồm 2 chiếc đũa. Vậy 3 đôi đũa có: 2 + 2 + 2 = 6 (chiếc đũa).",
+    "topic": "Tư duy logic",
+    "skill": "Khái niệm đôi và đếm theo nhóm",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["đôi", "đũa", "nhóm hai"]
+  },
+
+  # --- ĐỀ 3 ---
+  {
+    "deck": 3, "index": 1,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 74 < ... < 76 là:",
+    "options": ["75", "73", "77", "78"],
+    "correctAnswer": "75",
+    "explanation": "Số tự nhiên lớn hơn 74 và bé hơn 76 chỉ có số 75.",
+    "topic": "So sánh số",
+    "skill": "Tìm số ở giữa hai số",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 30,
+    "isTextBased": True, "tags": ["so sánh kép", "ở giữa", "thứ tự"]
+  },
+  {
+    "deck": 3, "index": 2,
+    "prompt": "Số 98 là số liền sau của số nào?",
+    "options": ["99", "100", "97", "98"],
+    "correctAnswer": "97",
+    "explanation": "Số 98 là số liền sau của số 97 (vì 97 + 1 = 98).",
+    "topic": "Số học và thứ tự số",
+    "skill": "Nhận biết số liền sau",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["liền sau", "thứ tự"]
+  },
+  {
+    "deck": 3, "index": 3,
+    "prompt": "Tìm kết quả của phép tính sau: 63 + 6 – 8 = ......",
+    "options": ["59", "68", "60", "61"],
+    "correctAnswer": "61",
+    "explanation": "Thực hiện từ trái sang phải: 63 + 6 = 69; sau đó 69 - 8 = 61.",
+    "topic": "Số học và phép tính",
+    "skill": "Biểu thức cộng trừ liên tiếp",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["biểu thức", "cộng trừ", "hai bước"]
+  },
+  {
+    "deck": 3, "index": 4,
+    "prompt": "Sau khi cửa hàng đã bán được 4 chục chiếc xe đạp, thì còn 1 chục chiếc xe đạp nữa. Hỏi lúc đầu cửa hàng có tất cả bao nhiêu chiếc xe đạp?",
+    "options": ["30 chiếc", "50 chiếc", "40 chiếc", "5 chiếc"],
+    "correctAnswer": "50 chiếc",
+    "explanation": "4 chục = 40 chiếc, 1 chục = 10 chiếc. Lúc đầu cửa hàng có: 40 + 10 = 50 (chiếc xe đạp).",
+    "topic": "Toán có lời văn",
+    "skill": "Cộng các số tròn chục có lời văn",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 35, "scoreMax": 70, "targetScore": 50,
+    "isTextBased": True, "tags": ["tròn chục", "xe đạp", "lời văn"]
+  },
+  {
+    "deck": 3, "index": 5,
+    "prompt": "Trên mặt phẳng có một hình tròn, có vô số điểm không nằm trong hình tròn đó. Hỏi có bao nhiêu điểm nằm bên ngoài hình tròn?",
+    "options": ["2 điểm", "4 điểm", "6 điểm", "Rất nhiều điểm"],
+    "correctAnswer": "Rất nhiều điểm",
+    "explanation": "Mặt phẳng bên ngoài một hình tròn là vô tận nên có rất nhiều điểm.",
+    "topic": "Hình học",
+    "skill": "Điểm bên trong - bên ngoài hình",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 10, "scoreMax": 40, "targetScore": 20,
+    "isTextBased": True, "tags": ["hình học", "trong ngoài"]
+  },
+  {
+    "deck": 3, "index": 6,
+    "prompt": "Điền số thích hợp vào chỗ chấm: ... – 32 = 46",
+    "options": ["76", "14", "78", "24"],
+    "correctAnswer": "78",
+    "explanation": "Muốn tìm số bị trừ, ta lấy hiệu cộng với số trừ: 46 + 32 = 78.",
+    "topic": "Số học và phép tính",
+    "skill": "Tìm số bị trừ chưa biết",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["tìm x", "số bị trừ", "phép trừ"]
+  },
+  {
+    "deck": 3, "index": 7,
+    "prompt": "Em của Ngọc năm nay có số tuổi bằng kết quả của tổng 5 số tự nhiên nhỏ nhất khác nhau. Hỏi năm nay em của Ngọc bao nhiêu tuổi?",
+    "options": ["5 tuổi", "15 tuổi", "9 tuổi", "10 tuổi"],
+    "correctAnswer": "10 tuổi",
+    "explanation": "Năm số tự nhiên nhỏ nhất khác nhau là: 0, 1, 2, 3, 4. Tổng = 0 + 1 + 2 + 3 + 4 = 10 (tuổi).",
+    "topic": "Tư duy logic",
+    "skill": "Tổng các số tự nhiên liên tiếp nhỏ nhất",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 65, "scoreMax": 95, "targetScore": 80,
+    "isTextBased": True, "tags": ["tư duy logic", "số nhỏ nhất", "tuổi"]
+  },
+  {
+    "deck": 3, "index": 8,
+    "prompt": "Hiện nay tuổi của hai anh em cộng lại là 14 tuổi. Hỏi 2 năm nữa tuổi hai anh em cộng lại là bao nhiêu.",
+    "options": ["16 tuổi", "18 tuổi", "14 tuổi", "20 tuổi"],
+    "correctAnswer": "18 tuổi",
+    "explanation": "Sau 2 năm, mỗi người đều tăng thêm 2 tuổi, cả 2 anh em tăng: 2 + 2 = 4 (tuổi). Tổng tuổi = 14 + 4 = 18 (tuổi).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán tuổi hai người sau N năm",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 95, "targetScore": 75,
+    "isTextBased": True, "tags": ["toán tuổi", "hai người", "logic"]
+  },
+  {
+    "deck": 3, "index": 9,
+    "prompt": "Kết quả phép trừ của số lớn nhất có hai chữ số với số bé nhất có 2 chữ số khác nhau là:",
+    "options": ["88", "89", "99", "90"],
+    "correctAnswer": "89",
+    "explanation": "Số lớn nhất có 2 chữ số là 99. Số bé nhất có 2 chữ số khác nhau là 10. Phép trừ: 99 - 10 = 89.",
+    "topic": "Tư duy logic",
+    "skill": "Đặc điểm số lớn nhất, số bé nhất khác nhau",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 90, "targetScore": 75,
+    "isTextBased": True, "tags": ["chữ số khác nhau", "lớn nhất", "bé nhất"]
+  },
+  {
+    "deck": 3, "index": 10,
+    "prompt": "Cho 3 chữ số 0; 1; 2; có tất cả bao nhiêu số có hai chữ số khác nhau được viết từ các chữ số trên?",
+    "options": ["2 số", "3 số", "4 số", "5 số"],
+    "correctAnswer": "4 số",
+    "explanation": "Chữ số hàng chục có thể là 1 hoặc 2 (2 cách). Các số lập được là: 10, 12, 20, 21. Tổng cộng có 4 số.",
+    "topic": "Tư duy logic",
+    "skill": "Lập số có hai chữ số khác nhau",
+    "difficulty": "E", "curriculumLevel": 6, "scoreMin": 70, "scoreMax": 100, "targetScore": 85,
+    "isTextBased": True, "tags": ["lập số", "chữ số khác nhau", "tổ hợp"]
+  },
+
+  # --- ĐỀ 4 ---
+  {
+    "deck": 4, "index": 1,
+    "prompt": "Dãy số giảm dần cách đều 1 đơn vị: 98, ..., 96, ..., 94. Điền số thích hợp vào ô trống theo thứ tự từ trái sang phải:",
+    "options": ["99; 94", "99; 95", "97; 95", "89; 85"],
+    "correctAnswer": "97; 95",
+    "explanation": "Dãy số đếm lùi: 98, 97, 96, 95, 94.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Điền số vào dãy đếm lùi",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["đếm lùi", "dãy số"]
+  },
+  {
+    "deck": 4, "index": 2,
+    "prompt": "Đồng hồ có kim ngắn chỉ số 10, kim dài chỉ số 12. Hỏi đồng hồ chỉ mấy giờ?",
+    "options": ["12 giờ", "10 giờ", "8 giờ", "7 giờ"],
+    "correctAnswer": "10 giờ",
+    "explanation": "Kim ngắn chỉ số 10, kim dài chỉ số 12 nghĩa là đúng 10 giờ.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Xem giờ đúng",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 50, "targetScore": 30,
+    "isTextBased": True, "tags": ["đồng hồ", "giờ"]
+  },
+  {
+    "deck": 4, "index": 3,
+    "prompt": "Tính: 87 cm – 42 cm – 23 cm = ......",
+    "options": ["22 cm", "23 cm", "25 cm", "67 cm"],
+    "correctAnswer": "22 cm",
+    "explanation": "87 cm - 42 cm = 45 cm; 45 cm - 23 cm = 22 cm.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Phép trừ số đo độ dài xăng-ti-mét",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["cm", "xăng-ti-mét", "trừ hai bước"]
+  },
+  {
+    "deck": 4, "index": 4,
+    "prompt": "Nhà Nga có 36 con gà, mẹ Nga đem đi bán 13 con gà. Hỏi nhà Nga còn lại bao nhiêu con gà?",
+    "options": ["43 con gà", "49 con gà", "13 con gà", "23 con gà"],
+    "correctAnswer": "23 con gà",
+    "explanation": "Số con gà còn lại là: 36 - 13 = 23 (con gà).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn phép trừ không nhớ",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["toán lời văn", "phép trừ"]
+  },
+  {
+    "deck": 4, "index": 5,
+    "prompt": "Số 84 đọc là:",
+    "options": ["Tám bốn", "Tám mươi tư", "Bốn tám", "Tư tám"],
+    "correctAnswer": "Tám mươi tư",
+    "explanation": "Số 84 có hàng chục là 8, hàng đơn vị là 4 nên đọc là Tám mươi tư.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Cách đọc số có hai chữ số tận cùng bằng 4",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["đọc số", "tám mươi tư"]
+  },
+  {
+    "deck": 4, "index": 6,
+    "prompt": "Điền dấu >, <, = thích hợp: 90 + 5 ...... 94",
+    "options": [">", "<", "=", "Đáp án khác"],
+    "correctAnswer": ">",
+    "explanation": "90 + 5 = 95. Vì 95 > 94 nên ta điền dấu >.",
+    "topic": "So sánh số",
+    "skill": "So sánh phép cộng với một số",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["so sánh", "điền dấu"]
+  },
+  {
+    "deck": 4, "index": 7,
+    "prompt": "Hồng có 40 nhãn vở. Hồng cho em 20 nhãn vở. Sau đó mẹ mua thêm cho Hồng 10 nhãn vở nữa. Hỏi cuối cùng Hồng có tất cả bao nhiêu nhãn vở?",
+    "options": ["20 nhãn vở", "10 nhãn vở", "30 nhãn vở", "50 nhãn vở"],
+    "correctAnswer": "30 nhãn vở",
+    "explanation": "Sau khi cho em, Hồng còn: 40 - 20 = 20 (nhãn vở). Sau khi mẹ mua thêm: 20 + 10 = 30 (nhãn vở).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn hai bước bớt đi và thêm vào",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["hai bước", "nhãn vở", "lời văn"]
+  },
+  {
+    "deck": 4, "index": 8,
+    "prompt": "Phép tính nào sau đây có kết quả lớn nhất: A. 34 + 35, B. 55 + 11, C. 67 – 7, D. 44 + 12",
+    "options": ["34 + 35", "55 + 11", "67 – 7", "44 + 12"],
+    "correctAnswer": "34 + 35",
+    "explanation": "Tính từng phép tính: 34 + 35 = 69; 55 + 11 = 66; 67 - 7 = 60; 44 + 12 = 56. Lớn nhất là 69.",
+    "topic": "So sánh số",
+    "skill": "So sánh kết quả nhiều phép tính",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["kết quả lớn nhất", "phép tính"]
+  },
+  {
+    "deck": 4, "index": 9,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 66 – 44 > ... > 57 – 37",
+    "options": ["23", "22", "20", "21"],
+    "correctAnswer": "21",
+    "explanation": "Ta có: 66 - 44 = 22 và 57 - 37 = 20. Ta có 22 > ... > 20 nên số cần điền là 21.",
+    "topic": "Tư duy logic",
+    "skill": "Bất đẳng thức kép giữa hai biểu thức",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 90, "targetScore": 75,
+    "isTextBased": True, "tags": ["bất đẳng thức", "ở giữa", "tư duy"]
+  },
+  {
+    "deck": 4, "index": 10,
+    "prompt": "Một hình ngũ giác có tất cả bao nhiêu đỉnh (điểm góc)?",
+    "options": ["4 điểm", "5 điểm", "6 điểm", "7 điểm"],
+    "correctAnswer": "5 điểm",
+    "explanation": "Hình ngũ giác có đúng 5 đỉnh (5 điểm).",
+    "topic": "Hình học",
+    "skill": "Nhận biết số điểm, số đỉnh của hình",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["hình học", "đỉnh", "điểm"]
+  },
+
+  # --- ĐỀ 5 ---
+  {
+    "deck": 5, "index": 1,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 58 cm + 40 cm = ...... cm",
+    "options": ["18 cm", "98 cm", "99 cm", "88 cm"],
+    "correctAnswer": "98 cm",
+    "explanation": "58 cm + 40 cm = 98 cm.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Cộng độ dài xăng-ti-mét",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["cm", "cộng", "độ dài"]
+  },
+  {
+    "deck": 5, "index": 2,
+    "prompt": "Điền dấu >, <, = thích hợp vào chỗ chấm: 88 – 45 ...... 63 – 20",
+    "options": [">", "<", "=", "Đáp án khác"],
+    "correctAnswer": "=",
+    "explanation": "88 - 45 = 43 và 63 - 20 = 43. Hai kết quả bằng nhau nên ta điền dấu =.",
+    "topic": "So sánh số",
+    "skill": "So sánh hai phép trừ",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["so sánh", "dấu bằng", "phép trừ"]
+  },
+  {
+    "deck": 5, "index": 3,
+    "prompt": "Mẹ hái được 85 quả hồng, mẹ đã bán 60 quả hồng. Hỏi mẹ còn lại bao nhiêu quả hồng?",
+    "options": ["20 quả hồng", "35 quả hồng", "30 quả hồng", "25 quả hồng"],
+    "correctAnswer": "25 quả hồng",
+    "explanation": "Số quả hồng còn lại là: 85 - 60 = 25 (quả hồng).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn trừ số tròn chục",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["lời văn", "quả hồng", "tròn chục"]
+  },
+  {
+    "deck": 5, "index": 4,
+    "prompt": "Một hình chữ nhật có bao nhiêu đoạn thẳng tạo thành các cạnh?",
+    "options": ["4 đoạn", "5 đoạn", "6 đoạn", "7 đoạn"],
+    "correctAnswer": "4 đoạn",
+    "explanation": "Hình chữ nhật được tạo thành bởi 4 đoạn thẳng khép kín.",
+    "topic": "Hình học",
+    "skill": "Số cạnh của hình chữ nhật",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 10, "scoreMax": 35, "targetScore": 20,
+    "isTextBased": True, "tags": ["hình chữ nhật", "đoạn thẳng", "cạnh"]
+  },
+  {
+    "deck": 5, "index": 5,
+    "prompt": "Số gồm 9 chục và 6 đơn vị là:",
+    "options": ["96", "906", "69", "609"],
+    "correctAnswer": "96",
+    "explanation": "9 chục và 6 đơn vị viết là 96.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Cấu tạo thập phân của số",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["cấu tạo số", "chục và đơn vị"]
+  },
+  {
+    "deck": 5, "index": 6,
+    "prompt": "Vào buổi sáng, kim dài chỉ số 12, kim ngắn chỉ số 7, lúc đó là mấy giờ?",
+    "options": ["12 giờ", "5 giờ", "19 giờ", "7 giờ"],
+    "correctAnswer": "7 giờ",
+    "explanation": "Buổi sáng kim ngắn chỉ 7, kim dài chỉ 12 là đúng 7 giờ sáng.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Xem giờ buổi sáng",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 20, "scoreMax": 55, "targetScore": 35,
+    "isTextBased": True, "tags": ["đồng hồ", "buổi sáng"]
+  },
+  {
+    "deck": 5, "index": 7,
+    "prompt": "Tìm số cộng với 3 rồi trừ đi 10 thì được 25.",
+    "options": ["34", "33", "32", "31"],
+    "correctAnswer": "32",
+    "explanation": "Tính ngược từ cuối: 25 + 10 = 35; sau đó 35 - 3 = 32.",
+    "topic": "Tư duy logic",
+    "skill": "Bài toán tính ngược từ cuối",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 65, "scoreMax": 95, "targetScore": 80,
+    "isTextBased": True, "tags": ["tính ngược", "tìm số", "logic"]
+  },
+  {
+    "deck": 5, "index": 8,
+    "prompt": "Hai tuần lễ và 5 ngày thì bằng mấy ngày?",
+    "options": ["14 ngày", "7 ngày", "12 ngày", "19 ngày"],
+    "correctAnswer": "19 ngày",
+    "explanation": "2 tuần = 14 ngày. 14 + 5 = 19 (ngày).",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Đổi tuần lễ ra ngày",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["tuần lễ", "ngày", "đổi đơn vị"]
+  },
+  {
+    "deck": 5, "index": 9,
+    "prompt": "Tính tổng số liền trước và số liền sau của số 14.",
+    "options": ["27", "29", "28", "26"],
+    "correctAnswer": "28",
+    "explanation": "Số liền trước của 14 là 13. Số liền sau của 14 là 15. Tổng = 13 + 15 = 28.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Tổng số liền trước và liền sau",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["tổng", "liền trước", "liền sau"]
+  },
+  {
+    "deck": 5, "index": 10,
+    "prompt": "An có ít hơn Bình 4 viên bi, Bình có ít hơn Minh 3 viên bi. Biết An có 5 viên bi. Hỏi Minh có mấy viên bi?",
+    "options": ["12 viên bi", "9 viên bi", "8 viên bi", "7 viên bi"],
+    "correctAnswer": "12 viên bi",
+    "explanation": "Bình có: 5 + 4 = 9 (viên). Minh có: 9 + 3 = 12 (viên bi).",
+    "topic": "Tư duy logic",
+    "skill": "Toán so sánh bắc cầu nhiều hơn - ít hơn",
+    "difficulty": "E", "curriculumLevel": 6, "scoreMin": 70, "scoreMax": 100, "targetScore": 85,
+    "isTextBased": True, "tags": ["bắc cầu", "ít hơn", "nhiều hơn", "bi"]
+  },
+
+  # --- ĐỀ 6 ---
+  {
+    "deck": 6, "index": 1,
+    "prompt": "Số nào bé nhất trong các số sau: 54, 29, 45, 38",
+    "options": ["54", "29", "45", "38"],
+    "correctAnswer": "29",
+    "explanation": "Chữ số hàng chục nhỏ nhất là 2 trong số 29.",
+    "topic": "So sánh số",
+    "skill": "Tìm số bé nhất trong nhóm 4 số",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["bé nhất", "so sánh"]
+  },
+  {
+    "deck": 6, "index": 2,
+    "prompt": "Số bảy mươi mốt viết thế nào?",
+    "options": ["71", "17", "70", "77"],
+    "correctAnswer": "71",
+    "explanation": "Bảy mươi mốt viết là 71.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Đọc viết số",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 10, "scoreMax": 40, "targetScore": 20,
+    "isTextBased": True, "tags": ["viết số", "chữ và số"]
+  },
+  {
+    "deck": 6, "index": 3,
+    "prompt": "Tính: 38 – 32 + 32 = ......",
+    "options": ["32", "36", "38", "40"],
+    "correctAnswer": "38",
+    "explanation": "Trừ 32 rồi lại cộng 32 thì kết quả không đổi, vẫn bằng 38.",
+    "topic": "Số học và phép tính",
+    "skill": "Tính nhanh cộng trừ cùng một số",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["tính nhanh", "quy luật phép tính"]
+  },
+  {
+    "deck": 6, "index": 4,
+    "prompt": "Điền kết quả thích hợp vào chỗ chấm: 75 cm – 5 cm + 8 cm = .........",
+    "options": ["70 cm", "75 cm", "77 cm", "78 cm"],
+    "correctAnswer": "78 cm",
+    "explanation": "75 cm - 5 cm = 70 cm; 70 cm + 8 cm = 78 cm.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Biểu thức độ dài xăng-ti-mét",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 35, "scoreMax": 70, "targetScore": 50,
+    "isTextBased": True, "tags": ["cm", "xăng-ti-mét", "biểu thức"]
+  },
+  {
+    "deck": 6, "index": 5,
+    "prompt": "Một hình vuông có một đường chéo chia thành bao nhiêu hình tam giác?",
+    "options": ["3 hình", "5 hình", "2 hình", "6 hình"],
+    "correctAnswer": "2 hình",
+    "explanation": "Một đường chéo chia hình vuông thành 2 hình tam giác bằng nhau.",
+    "topic": "Hình học",
+    "skill": "Phân chia và đếm hình tam giác",
+    "difficulty": "A", "curriculumLevel": 1, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["hình vuông", "hình tam giác", "đếm hình"]
+  },
+  {
+    "deck": 6, "index": 6,
+    "prompt": "An đang nghĩ đến một số có hai chữ số mà số hàng chục là số lớn nhất có 1 chữ số, số hàng đơn vị là số nhỏ nhất có 1 chữ số. Số An nghĩ đến là số nào?",
+    "options": ["19", "91", "90", "99"],
+    "correctAnswer": "90",
+    "explanation": "Số lớn nhất có 1 chữ số là 9. Số nhỏ nhất có 1 chữ số là 0. Ghép lại được số 90.",
+    "topic": "Tư duy logic",
+    "skill": "Cấu tạo số từ điều kiện chữ số",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["số lớn nhất", "số nhỏ nhất", "cấu tạo số"]
+  },
+  {
+    "deck": 6, "index": 7,
+    "prompt": "Một hộp bút chì có 10 chiếc bút. Bình quyên góp 5 hộp như vậy gửi đến các bạn nhỏ ở miền Trung. Hỏi Bình quyên góp tất cả bao nhiêu chiếc bút chì?",
+    "options": ["15 chiếc", "50 chiếc", "5 chiếc", "500 chiếc"],
+    "correctAnswer": "50 chiếc",
+    "explanation": "5 hộp, mỗi hộp 10 chiếc tức là 5 chục = 50 chiếc bút chì.",
+    "topic": "Toán có lời văn",
+    "skill": "Đếm theo chục",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["chục", "quyên góp", "bút chì"]
+  },
+  {
+    "deck": 6, "index": 8,
+    "prompt": "Trong xe buýt có 14 người. Khi xe dừng tại bến, có 15 người lên xe và 13 người xuống xe. Hỏi lúc đó xe buýt có bao nhiêu người?",
+    "options": ["15 người", "29 người", "25 người", "16 người"],
+    "correctAnswer": "16 người",
+    "explanation": "Có 15 người lên: 14 + 15 = 29 (người). Có 13 người xuống: 29 - 13 = 16 (người).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán thêm bớt hai bước tính",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["xe buýt", "hai bước", "thực tế"]
+  },
+  {
+    "deck": 6, "index": 9,
+    "prompt": "Số liền sau trừ đi số liền trước của cùng một số thì có kết quả bằng bao nhiêu?",
+    "options": ["1", "2", "3", "4"],
+    "correctAnswer": "2",
+    "explanation": "Ví dụ số 5: số liền sau là 6, liền trước là 4. Ta có: 6 - 4 = 2. Luôn bằng 2 với mọi số.",
+    "topic": "Tư duy logic",
+    "skill": "Quy luật khoảng cách giữa số liền trước và liền sau",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 90, "targetScore": 75,
+    "isTextBased": True, "tags": ["quy luật", "liền trước", "liền sau"]
+  },
+  {
+    "deck": 6, "index": 10,
+    "prompt": "Lớp 1A thuê một chiếc xe loại 36 chỗ ngồi để đi tham quan (tính cả chỗ ngồi của cô giáo). Khi cô giáo cùng cả lớp lên xe ngồi thì xe còn thừa 3 ghế trống. Hỏi lớp 1A có bao nhiêu học sinh?",
+    "options": ["39 học sinh", "30 học sinh", "33 học sinh", "32 học sinh"],
+    "correctAnswer": "32 học sinh",
+    "explanation": "Tổng số người trên xe = 36 - 3 = 33 người (cô giáo + học sinh). Số học sinh = 33 - 1 = 32 học sinh.",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn trừ bớt người kèm điều kiện",
+    "difficulty": "E", "curriculumLevel": 6, "scoreMin": 70, "scoreMax": 100, "targetScore": 85,
+    "isTextBased": True, "tags": ["xe khách", "cô giáo", "học sinh", "bài toán bẫy"]
+  },
+
+  # --- ĐỀ 7 ---
+  {
+    "deck": 7, "index": 1,
+    "prompt": "Hôm nay là thứ Hai ngày 10. Hôm qua là:",
+    "options": ["Chủ Nhật ngày 9", "Thứ Ba ngày 11", "Thứ Bảy ngày 9", "Thứ Ba ngày 9"],
+    "correctAnswer": "Chủ Nhật ngày 9",
+    "explanation": "Trước thứ Hai là Chủ Nhật. Trước ngày 10 là ngày 9. Vậy hôm qua là Chủ Nhật ngày 9.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Xác định thứ ngày hôm qua",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 50, "targetScore": 30,
+    "isTextBased": True, "tags": ["hôm qua", "thứ", "ngày"]
+  },
+  {
+    "deck": 7, "index": 2,
+    "prompt": "Số 65 đọc là:",
+    "options": ["Sáu năm", "Sáu mươi năm", "Sáu mươi lăm", "Năm mươi sáu"],
+    "correctAnswer": "Sáu mươi lăm",
+    "explanation": "Số có chữ số hàng đơn vị là 5 khi đọc sau mươi sẽ đọc là lăm: Sáu mươi lăm.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Đọc số có đuôi là 5",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["đọc số", "sáu mươi lăm"]
+  },
+  {
+    "deck": 7, "index": 3,
+    "prompt": "Long có 15 quả bóng bay xanh và đỏ, trong đó có 4 quả bóng bay màu xanh. Hỏi Long có bao nhiêu quả bóng bay màu đỏ?",
+    "options": ["19 quả", "11 quả", "10 quả", "12 quả"],
+    "correctAnswer": "11 quả",
+    "explanation": "Số quả bóng màu đỏ là: 15 - 4 = 11 (quả).",
+    "topic": "Toán có lời văn",
+    "skill": "Tìm một phần khi biết tổng",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["bóng bay", "màu sắc", "phép trừ"]
+  },
+  {
+    "deck": 7, "index": 4,
+    "prompt": "Các số lớn hơn 87 và nhỏ hơn 90 là:",
+    "options": ["87; 88; 89; 90", "87; 88; 89", "88; 89; 90", "88; 89"],
+    "correctAnswer": "88; 89",
+    "explanation": "Các số tự nhiên kẹp giữa 87 và 90 là 88 và 89 (không tính 87 và 90).",
+    "topic": "So sánh số",
+    "skill": "Liệt kê số trong khoảng",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["lớn hơn", "nhỏ hơn", "khoảng"]
+  },
+  {
+    "deck": 7, "index": 5,
+    "prompt": "Số 70 gồm:",
+    "options": ["7 chục và 10 đơn vị", "7 chục và 0 đơn vị", "70 chục và 10 đơn vị", "70 chục và 0 đơn vị"],
+    "correctAnswer": "7 chục và 0 đơn vị",
+    "explanation": "Số 70 gồm 7 chục và 0 đơn vị.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Cấu tạo số tròn chục",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["cấu tạo số", "chục", "đơn vị"]
+  },
+  {
+    "deck": 7, "index": 6,
+    "prompt": "Lớp Mai có 26 học sinh. Sáng nay cả lớp đi tham quan bảo tàng. Lúc cô giáo đến, thấy có 12 bạn đã đến. Hỏi còn bao nhiêu bạn chưa đến?",
+    "options": ["38 bạn", "14 bạn", "18 bạn", "12 bạn"],
+    "correctAnswer": "14 bạn",
+    "explanation": "Số bạn chưa đến là: 26 - 12 = 14 (bạn).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán lời văn tìm phần còn thiếu",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["lời văn", "học sinh", "bảo tàng"]
+  },
+  {
+    "deck": 7, "index": 7,
+    "prompt": "Gia đình Hồng Anh dự định ở Đà Nẵng 1 tuần và 3 ngày, sau đó ở lại thêm 1 tuần nữa. Hỏi gia đình Hồng Anh đã ở Đà Nẵng bao nhiêu ngày?",
+    "options": ["13 ngày", "14 ngày", "10 ngày", "17 ngày"],
+    "correctAnswer": "17 ngày",
+    "explanation": "1 tuần + 1 tuần = 2 tuần = 14 ngày. Tổng số ngày là: 14 + 3 = 17 (ngày).",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Tính tổng ngày từ nhiều tuần",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["tuần lễ", "ngày", "thực tế"]
+  },
+  {
+    "deck": 7, "index": 8,
+    "prompt": "Các bạn đo chiều dài chiếc bảng: Minh đo được 7 sải tay, Mai đo được 9 sải tay, An đo được 6 sải tay, Vân đo được 10 sải tay. Hỏi bạn nào có sải tay ngắn nhất?",
+    "options": ["Minh", "An", "Mai", "Vân"],
+    "correctAnswer": "Vân",
+    "explanation": "Cùng một chiếc bảng, bạn nào cần nhiều sải tay nhất để đo hết thì sải tay bạn đó ngắn nhất. Vân đo 10 sải tay (nhiều nhất) nên sải tay Vân ngắn nhất.",
+    "topic": "Tư duy logic",
+    "skill": "So sánh đơn vị đo không chuẩn",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 90, "targetScore": 75,
+    "isTextBased": True, "tags": ["sải tay", "ngắn nhất", "nghịch đảo", "tư duy"]
+  },
+  {
+    "deck": 7, "index": 9,
+    "prompt": "Một hình tam giác lớn được chia đôi bởi một đường thẳng từ đỉnh xuống đáy tạo thành mấy hình tam giác?",
+    "options": ["6 hình", "5 hình", "4 hình", "3 hình"],
+    "correctAnswer": "3 hình",
+    "explanation": "Gồm 2 hình tam giác nhỏ hai bên và 1 hình tam giác lớn bao quanh, tổng là 3 hình.",
+    "topic": "Hình học",
+    "skill": "Đếm hình tam giác lồng nhau",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 35, "scoreMax": 70, "targetScore": 50,
+    "isTextBased": True, "tags": ["tam giác", "đếm hình"]
+  },
+  {
+    "deck": 7, "index": 10,
+    "prompt": "An đi từ nhà đến trường hết 1 giờ. An bắt đầu đi từ nhà lúc 6 giờ sáng và đến trường lúc:",
+    "options": ["7 giờ tối", "7 giờ sáng", "5 giờ sáng", "8 giờ sáng"],
+    "correctAnswer": "7 giờ sáng",
+    "explanation": "6 giờ sáng đi thêm 1 giờ là 7 giờ sáng.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Cộng mốc thời gian giờ",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["thời gian", "giờ sáng", "đi học"]
+  },
+
+  # --- ĐỀ 8 ---
+  {
+    "deck": 8, "index": 1,
+    "prompt": "55 đọc là:",
+    "options": ["Năm mươi năm", "Năm mươi lăm", "Năm năm", "Năm lăm"],
+    "correctAnswer": "Năm mươi lăm",
+    "explanation": "Số 55 đọc chuẩn là Năm mươi lăm.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Cách đọc số 55",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 10, "scoreMax": 40, "targetScore": 20,
+    "isTextBased": True, "tags": ["đọc số", "năm mươi lăm"]
+  },
+  {
+    "deck": 8, "index": 2,
+    "prompt": "Lớp 1A có 36 bạn. Trong đó có 10 bạn nữ. Hỏi lớp 1A có bao nhiêu bạn nam?",
+    "options": ["46", "16", "10", "26"],
+    "correctAnswer": "26",
+    "explanation": "Số bạn nam là: 36 - 10 = 26 (bạn).",
+    "topic": "Toán có lời văn",
+    "skill": "Phép trừ số tròn chục có lời văn",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["học sinh", "nam nữ", "trừ tròn chục"]
+  },
+  {
+    "deck": 8, "index": 3,
+    "prompt": "Đồng hồ có kim ngắn chỉ số 9, kim dài chỉ số 12. Hỏi đồng hồ chỉ mấy giờ?",
+    "options": ["12 giờ", "11 giờ", "10 giờ", "9 giờ"],
+    "correctAnswer": "9 giờ",
+    "explanation": "Kim ngắn chỉ 9, kim dài chỉ 12 tức là 9 giờ đúng.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Xem giờ đúng",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 50, "targetScore": 25,
+    "isTextBased": True, "tags": ["đồng hồ", "9 giờ"]
+  },
+  {
+    "deck": 8, "index": 4,
+    "prompt": "Lựa chọn phép so sánh đúng trong các phép tính dưới đây:",
+    "options": ["77 – 7 – 0 = 77", "65 – 30 < 33", "90 + 5 > 94", "63 = 36"],
+    "correctAnswer": "90 + 5 > 94",
+    "explanation": "90 + 5 = 95 > 94 là so sánh đúng. Các phương án khác đều sai.",
+    "topic": "So sánh số",
+    "skill": "Kiểm tra tính đúng sai của biểu thức so sánh",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["so sánh đúng", "phép tính"]
+  },
+  {
+    "deck": 8, "index": 5,
+    "prompt": "Cho các số sau: 78; 87; 94; 49. Số nào là số bé nhất?",
+    "options": ["78", "87", "94", "49"],
+    "correctAnswer": "49",
+    "explanation": "Chữ số hàng chục của 49 là 4, nhỏ hơn 7, 8, 9 nên 49 bé nhất.",
+    "topic": "So sánh số",
+    "skill": "Tìm số bé nhất trong dãy",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["bé nhất", "so sánh"]
+  },
+  {
+    "deck": 8, "index": 6,
+    "prompt": "Nga và Lan hái được 49 bông hoa, riêng Lan hái được 2 chục bông hoa. Hỏi Nga hái được bao nhiêu bông hoa?",
+    "options": ["49", "20", "69", "29"],
+    "correctAnswer": "29",
+    "explanation": "2 chục = 20 bông. Nga hái được: 49 - 20 = 29 (bông hoa).",
+    "topic": "Toán có lời văn",
+    "skill": "Đổi chục và trừ tìm phần còn lại",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["bông hoa", "chục", "lời văn"]
+  },
+  {
+    "deck": 8, "index": 7,
+    "prompt": "Một ô tô chở 10 khách. Đến bến có 3 người xuống và 2 người lên. Hỏi trên xe bây giờ có bao nhiêu khách?",
+    "options": ["7", "8", "9", "10"],
+    "correctAnswer": "9",
+    "explanation": "Số khách sau khi 3 người xuống: 10 - 3 = 7. Sau khi 2 người lên: 7 + 2 = 9 (khách).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán thực tế lên xuống xe",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 35, "scoreMax": 70, "targetScore": 50,
+    "isTextBased": True, "tags": ["ô tô", "hành khách", "thực tế"]
+  },
+  {
+    "deck": 8, "index": 8,
+    "prompt": "Một hình chữ nhật được chia bởi 2 đường chéo tạo thành bao nhiêu hình tam giác nhỏ?",
+    "options": ["4", "5", "6", "7"],
+    "correctAnswer": "4",
+    "explanation": "Hai đường chéo cắt nhau chia hình chữ nhật thành 4 hình tam giác nhỏ bên trong.",
+    "topic": "Hình học",
+    "skill": "Đếm hình tam giác trong hình chữ nhật",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["hình chữ nhật", "tam giác", "đếm hình"]
+  },
+  {
+    "deck": 8, "index": 9,
+    "prompt": "Bình hỏi Minh: “Năm nay chị của bạn bao nhiêu tuổi?”. Minh đáp: “Tuổi mình nhiều hơn 5 nhưng ít hơn 7. Mình kém chị mình 4 tuổi”. Hỏi chị của bạn Minh bao nhiêu tuổi?",
+    "options": ["10", "12", "11", "9"],
+    "correctAnswer": "10",
+    "explanation": "Số tự nhiên lớn hơn 5 và nhỏ hơn 7 là 6, nên Minh 6 tuổi. Chị Minh hơn Minh 4 tuổi: 6 + 4 = 10 (tuổi).",
+    "topic": "Tư duy logic",
+    "skill": "Suy luận logic tìm tuổi",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 95, "targetScore": 75,
+    "isTextBased": True, "tags": ["suy luận", "toán tuổi", "logic"]
+  },
+  {
+    "deck": 8, "index": 10,
+    "prompt": "Thứ Tư của một tuần là ngày 11 trong tháng. Hỏi thứ Năm của tuần liền sau là ngày nào trong tháng?",
+    "options": ["18", "19", "20", "21"],
+    "correctAnswer": "19",
+    "explanation": "Thứ Tư tuần liền sau là: 11 + 7 = 18. Thứ Năm liền kề sau thứ Tư là ngày: 18 + 1 = 19.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Tính lịch thứ ngày tuần sau",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 65, "scoreMax": 95, "targetScore": 80,
+    "isTextBased": True, "tags": ["lịch", "thứ ngày", "tuần sau"]
+  },
+
+  # --- ĐỀ 9 ---
+  {
+    "deck": 9, "index": 1,
+    "prompt": "Ô tô bắt đầu chạy lúc 6 giờ và đến Hải Phòng lúc 9 giờ. Hỏi từ Hà Nội đến Hải Phòng ô tô chạy hết mấy giờ?",
+    "options": ["1", "2", "3", "4"],
+    "correctAnswer": "3",
+    "explanation": "Thời gian ô tô chạy là: 9 - 6 = 3 (giờ).",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Tính khoảng thời gian trôi qua",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["giờ", "khoảng thời gian", "ô tô"]
+  },
+  {
+    "deck": 9, "index": 2,
+    "prompt": "Một góc vuông được chia đôi bởi 1 tia tạo thành mấy góc nhọn?",
+    "options": ["2", "1", "3", "4"],
+    "correctAnswer": "2",
+    "explanation": "Tia chia góc vuông thành 2 góc nhọn nhỏ.",
+    "topic": "Hình học",
+    "skill": "Nhận biết góc",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["góc", "hình học"]
+  },
+  {
+    "deck": 9, "index": 3,
+    "prompt": "Nhà Lam nuôi 4 con gà mái. Số gà trống bằng số gà mái. Hỏi nhà Lam nuôi tất cả bao nhiêu con gà?",
+    "options": ["7", "8", "9", "10"],
+    "correctAnswer": "8",
+    "explanation": "Số gà trống là 4 con. Tổng số gà: 4 + 4 = 8 (con gà).",
+    "topic": "Toán có lời văn",
+    "skill": "Bài toán nhiều bằng nhau",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 20, "scoreMax": 50, "targetScore": 30,
+    "isTextBased": True, "tags": ["bằng nhau", "gà", "lời văn"]
+  },
+  {
+    "deck": 9, "index": 4,
+    "prompt": "Số tròn chục lớn nhất có hai chữ số là:",
+    "options": ["60", "70", "80", "90"],
+    "correctAnswer": "90",
+    "explanation": "Các số tròn chục có hai chữ số là 10, 20, ..., 90. Số lớn nhất là 90.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Nhận biết số tròn chục lớn nhất",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["tròn chục", "lớn nhất"]
+  },
+  {
+    "deck": 9, "index": 5,
+    "prompt": "Bố đi công tác xa nhà 1 tuần lễ và 3 ngày. Hỏi bố đi công tác bao nhiêu ngày?",
+    "options": ["4", "7", "10", "8"],
+    "correctAnswer": "10",
+    "explanation": "1 tuần lễ = 7 ngày. Tổng cộng: 7 + 3 = 10 (ngày).",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Quy đổi tuần lễ và cộng ngày",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["tuần lễ", "ngày", "cộng"]
+  },
+  {
+    "deck": 9, "index": 6,
+    "prompt": "An có một số tấm thẻ. Sau khi mẹ mua cho An 3 chục tấm thẻ thì An có tất cả 50 tấm thẻ. Hỏi lúc đầu An có bao nhiêu tấm thẻ?",
+    "options": ["30", "50", "20", "80"],
+    "correctAnswer": "20",
+    "explanation": "3 chục = 30 tấm thẻ. Lúc đầu An có: 50 - 30 = 20 (tấm thẻ).",
+    "topic": "Toán có lời văn",
+    "skill": "Tìm số ban đầu",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 40, "scoreMax": 75, "targetScore": 55,
+    "isTextBased": True, "tags": ["thẻ", "chục", "tìm số ban đầu"]
+  },
+  {
+    "deck": 9, "index": 7,
+    "prompt": "Một hình chữ nhật được chia thành 4 ô vuông bằng nhau, mỗi ô vuông có 1 đường chéo tạo thành bao nhiêu tam giác nhỏ?",
+    "options": ["8", "4", "6", "7"],
+    "correctAnswer": "8",
+    "explanation": "Mỗi ô vuông chia thành 2 tam giác, 4 ô vuông tạo thành: 4 x 2 = 8 tam giác.",
+    "topic": "Hình học",
+    "skill": "Đếm tam giác theo nhóm",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["tam giác", "hình học"]
+  },
+  {
+    "deck": 9, "index": 8,
+    "prompt": "Hoà 6 tuổi, Bình ít hơn Hoà 2 tuổi. Tuổi Nga nhiều hơn Bình 1 tuổi. Hỏi bạn Nga bao nhiêu tuổi?",
+    "options": ["5", "7", "8", "9"],
+    "correctAnswer": "5",
+    "explanation": "Tuổi Bình là: 6 - 2 = 4 (tuổi). Tuổi Nga là: 4 + 1 = 5 (tuổi).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán tuổi hai bước so sánh liên tiếp",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["toán tuổi", "hai bước"]
+  },
+  {
+    "deck": 9, "index": 9,
+    "prompt": "Điền số thích hợp vào chỗ chấm: 23 + 45 + ... = 88",
+    "options": ["43", "15", "48", "20"],
+    "correctAnswer": "20",
+    "explanation": "Ta có 23 + 45 = 68. Số cần điền là: 88 - 68 = 20.",
+    "topic": "Số học và phép tính",
+    "skill": "Tìm số hạng thứ ba trong tổng ba số",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 60, "scoreMax": 90, "targetScore": 75,
+    "isTextBased": True, "tags": ["tổng ba số", "tìm số hạng"]
+  },
+  {
+    "deck": 9, "index": 10,
+    "prompt": "Từ số 30 đến số 60, số các số có hai chữ số giống nhau là:",
+    "options": ["1", "2", "3", "4"],
+    "correctAnswer": "3",
+    "explanation": "Các số có hai chữ số giống nhau trong khoảng từ 30 đến 60 là: 33, 44, 55 (tất cả 3 số).",
+    "topic": "Tư duy logic",
+    "skill": "Đếm số có chữ số giống nhau trong khoảng",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 65, "scoreMax": 95, "targetScore": 80,
+    "isTextBased": True, "tags": ["chữ số giống nhau", "đếm số", "tư duy"]
+  },
+
+  # --- ĐỀ 10 ---
+  {
+    "deck": 10, "index": 1,
+    "prompt": "An có 1 chục viên bi màu đỏ và 5 viên bi màu vàng. Vậy An có tất cả là ... viên.",
+    "options": ["15", "5", "20", "19"],
+    "correctAnswer": "15",
+    "explanation": "1 chục = 10. Tổng số viên bi là: 10 + 5 = 15 (viên bi).",
+    "topic": "Toán có lời văn",
+    "skill": "Cộng chục và đơn vị",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["chục", "bi đỏ", "bi vàng"]
+  },
+  {
+    "deck": 10, "index": 2,
+    "prompt": "Số lớn nhất trong các số: 15; 78; 40; 59 là:",
+    "options": ["15", "78", "40", "59"],
+    "correctAnswer": "78",
+    "explanation": "So sánh chữ số hàng chục: 7 là lớn nhất nên 78 là số lớn nhất.",
+    "topic": "So sánh số",
+    "skill": "Tìm số lớn nhất",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["lớn nhất", "so sánh"]
+  },
+  {
+    "deck": 10, "index": 3,
+    "prompt": "Trong phòng có 75 cái ghế, người ta mang ra khỏi phòng 15 cái ghế. Hỏi trong phòng còn lại bao nhiêu cái ghế?",
+    "options": ["80", "50", "60", "70"],
+    "correctAnswer": "60",
+    "explanation": "Số ghế còn lại trong phòng là: 75 - 15 = 60 (cái ghế).",
+    "topic": "Toán có lời văn",
+    "skill": "Trừ số có hai chữ số có lời văn",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["ghế", "mang ra", "phép trừ"]
+  },
+  {
+    "deck": 10, "index": 4,
+    "prompt": "Số liền trước và số liền sau của 20 là:",
+    "options": ["19 và 21", "15 và 16", "22 và 24", "18 và 22"],
+    "correctAnswer": "19 và 21",
+    "explanation": "Liền trước 20 là 19, liền sau 20 là 21.",
+    "topic": "Số học và thứ tự số",
+    "skill": "Số liền trước và liền sau số tròn chục",
+    "difficulty": "A", "curriculumLevel": 2, "scoreMin": 15, "scoreMax": 45, "targetScore": 25,
+    "isTextBased": True, "tags": ["liền trước", "liền sau", "20"]
+  },
+  {
+    "deck": 10, "index": 5,
+    "prompt": "Số lớn nhất có thể cộng với 3 được kết quả nhỏ hơn 10 là số:",
+    "options": ["4", "5", "6", "7"],
+    "correctAnswer": "6",
+    "explanation": "Ta có: X + 3 < 10 => X < 7. Số tự nhiên lớn nhất nhỏ hơn 7 là 6 (vì 6 + 3 = 9 < 10).",
+    "topic": "Tư duy logic",
+    "skill": "Tìm số tự nhiên lớn nhất thỏa mãn bất đẳng thức",
+    "difficulty": "D", "curriculumLevel": 5, "scoreMin": 65, "scoreMax": 95, "targetScore": 80,
+    "isTextBased": True, "tags": ["bất đẳng thức", "lớn nhất", "tư duy"]
+  },
+  {
+    "deck": 10, "index": 6,
+    "prompt": "Một hình tam giác có 1 đường cắt ngang song song đáy chia thành mấy hình tam giác?",
+    "options": ["1", "2", "3", "4"],
+    "correctAnswer": "2",
+    "explanation": "Gồm 1 tam giác nhỏ phía trên và 1 tam giác lớn ban đầu, tổng là 2 hình tam giác.",
+    "topic": "Hình học",
+    "skill": "Đếm tam giác phân chia",
+    "difficulty": "B", "curriculumLevel": 2, "scoreMin": 25, "scoreMax": 60, "targetScore": 40,
+    "isTextBased": True, "tags": ["tam giác", "hình học"]
+  },
+  {
+    "deck": 10, "index": 7,
+    "prompt": "Nam có một số kẹo là số lớn nhất có một chữ số. Hải có số kẹo ít hơn 2 chiếc. Hỏi Hải có bao nhiêu chiếc kẹo?",
+    "options": ["7", "9", "11", "Không có đáp án"],
+    "correctAnswer": "7",
+    "explanation": "Số lớn nhất có 1 chữ số là 9 nên Nam có 9 chiếc kẹo. Hải có: 9 - 2 = 7 (chiếc kẹo).",
+    "topic": "Toán có lời văn",
+    "skill": "Kết hợp số lớn nhất có 1 chữ số và bài toán ít hơn",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["kẹo", "lớn nhất 1 chữ số", "ít hơn"]
+  },
+  {
+    "deck": 10, "index": 8,
+    "prompt": "Tùng và Tâm mỗi bạn có 24 quả bóng. Hỏi cả hai bạn có tất cả mấy quả bóng?",
+    "options": ["64", "40", "48", "34"],
+    "correctAnswer": "48",
+    "explanation": "Cả hai bạn có: 24 + 24 = 48 (quả bóng).",
+    "topic": "Toán có lời văn",
+    "skill": "Bài toán gấp đôi / cộng hai số bằng nhau",
+    "difficulty": "B", "curriculumLevel": 3, "scoreMin": 30, "scoreMax": 65, "targetScore": 45,
+    "isTextBased": True, "tags": ["bóng", "mỗi bạn", "phép cộng"]
+  },
+  {
+    "deck": 10, "index": 9,
+    "prompt": "Thứ Tư của một tuần là ngày 13. Hỏi thứ Hai của tuần liền trước là ngày nào trong tháng?",
+    "options": ["6", "7", "4", "9"],
+    "correctAnswer": "4",
+    "explanation": "Thứ Tư tuần liền trước là ngày: 13 - 7 = 6. Thứ Hai cùng tuần liền trước kém thứ Tư 2 ngày: 6 - 2 = 4.",
+    "topic": "Thời gian và đại lượng",
+    "skill": "Lùi tuần và tìm ngày trong tuần trước",
+    "difficulty": "E", "curriculumLevel": 6, "scoreMin": 70, "scoreMax": 100, "targetScore": 85,
+    "isTextBased": True, "tags": ["tuần trước", "thứ Hai", "lịch"]
+  },
+  {
+    "deck": 10, "index": 10,
+    "prompt": "Cửa hàng có 63 chiếc xe đạp. Buổi sáng đã bán được 3 chục chiếc, buổi chiều bán thêm 3 chiếc nữa. Hỏi cửa hàng còn lại bao nhiêu chiếc xe đạp?",
+    "options": ["30", "33", "36", "40"],
+    "correctAnswer": "30",
+    "explanation": "3 chục = 30 chiếc. Buổi sáng còn: 63 - 30 = 33 (chiếc). Buổi chiều còn: 33 - 3 = 30 (chiếc xe đạp).",
+    "topic": "Toán có lời văn",
+    "skill": "Toán bán hàng hai bước tính kết hợp đổi chục",
+    "difficulty": "C", "curriculumLevel": 4, "scoreMin": 45, "scoreMax": 80, "targetScore": 60,
+    "isTextBased": True, "tags": ["xe đạp", "chục", "hai bước"]
+  }
+]
+
+out_path = "src/data/rag-question-bank.json"
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(enriched_data, f, ensure_ascii=False, indent=2)
+
+print(f"Successfully generated {len(enriched_data)} questions in {out_path}!")

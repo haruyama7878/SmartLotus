@@ -3,6 +3,12 @@ import "server-only";
 import { questions, type Difficulty, type QuizQuestion, type SurveyQuestion } from "./learning-data";
 import { makeVariant } from "./survey-variant";
 import {
+  retrieveContext,
+  retrievePersonalizedContext,
+  synthesizePersonalizedQuestions,
+  type RagKnowledgeQuestion,
+} from "@/lib/rag";
+import {
   difficultiesForScore,
   evaluatePathLocal,
   type AttemptSummary,
@@ -22,7 +28,7 @@ export type GenerateQuizInput = {
 };
 
 export type GeneratedQuiz = {
-  source: "ai" | "question-bank";
+  source: "ai" | "question-bank" | "rag";
   questions: QuizQuestion[];
 };
 
@@ -74,7 +80,7 @@ export async function requestOllamaChat(
 ): Promise<Response | null> {
   const aiApiUrl = process.env.AI_API_URL;
   const baseUrl = (process.env.OLLAMA_BASE_URL ?? (aiApiUrl && aiApiUrl.includes(":11434") ? aiApiUrl.replace(/\/v1.*$/, "") : "http://localhost:11434")).replace(/\/+$/, "");
-  const model = process.env.OLLAMA_MODEL ?? process.env.AI_MODEL ?? "minicpm-v:latest";
+  const model = process.env.OLLAMA_MODEL ?? process.env.AI_MODEL ?? "qwen2.5:1.5b";
 
   try {
     const response = await fetch(`${baseUrl}/api/chat`, {
@@ -88,7 +94,7 @@ export async function requestOllamaChat(
         messages,
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(90000),
     });
     return response;
   } catch (error) {
@@ -107,8 +113,20 @@ export async function parseOllamaResponse(response: Response | null): Promise<Re
     if (!message || typeof message !== "object" || !("content" in message)) return null;
 
     const content = (message as Record<string, unknown>).content;
-    const parsed: unknown = typeof content === "string" ? JSON.parse(content) : content;
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    if (typeof content !== "string") {
+      return content && typeof content === "object" ? (content as Record<string, unknown>) : null;
+    }
+
+    try {
+      return JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      const cleaned = content.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
+        return JSON.parse(match[0]) as Record<string, unknown>;
+      }
+      return null;
+    }
   } catch {
     return null;
   }
@@ -118,9 +136,17 @@ async function requestOpenAIChat(
   messages: OllamaMessage[],
   temperature: number,
 ): Promise<Record<string, unknown> | null> {
-  const apiUrl = process.env.AI_API_URL;
-  const apiKey = process.env.AI_API_KEY;
-  const model = process.env.AI_MODEL ?? "gpt-4o-mini";
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY ?? geminiKey;
+  let apiUrl = process.env.AI_API_URL;
+  let model = process.env.AI_MODEL;
+
+  if (geminiKey && !apiUrl) {
+    apiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    model = model ?? "gemini-2.0-flash";
+  }
+
+  model = model ?? "gpt-4o-mini";
 
   if (!apiUrl || !apiUrl.startsWith("http") || apiUrl.includes("localhost:11434")) {
     return null;
@@ -476,81 +502,10 @@ function fallbackQuiz(count: number, input?: GenerateQuizInput): GeneratedQuiz {
  * Khi AI không sẵn sàng, tự động dùng ngân hàng câu hỏi thông minh phù hợp chủ đề và cấp độ.
  */
 export async function generateQuiz(input: GenerateQuizInput): Promise<GeneratedQuiz> {
-  const count = Math.max(1, Math.min(20, input.count ?? 10));
-  const normalCount = Math.ceil(count / 2);
-  const quizFormat: OllamaFormat = {
-    type: "object",
-    properties: {
-      questions: {
-        type: "array",
-        minItems: count,
-        maxItems: count,
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "integer" },
-            phase: { type: "string", enum: ["normal", "challenge"] },
-            difficulty: {
-              type: "string",
-              enum: input.difficulties.length ? input.difficulties : ["A", "B", "C", "D", "E"],
-            },
-            skill: { type: "string" },
-            prompt: { type: "string" },
-            options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
-            correctAnswer: { type: "string" },
-            explanation: { type: "string" },
-          },
-          required: [
-            "id",
-            "phase",
-            "difficulty",
-            "skill",
-            "prompt",
-            "options",
-            "correctAnswer",
-            "explanation",
-          ],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ["questions"],
-    additionalProperties: false,
-  };
-
-  const parsed = await fetchParsedAIChat(
-    [
-      {
-        role: "system",
-        content:
-          "Bạn là chuyên gia giáo dục tiểu học Việt Nam. BẮT BUỘC viết 100% nội dung bằng tiếng Việt có dấu; tuyệt đối không dùng tiếng Anh ở prompt, skill, lựa chọn hoặc lời giải. Dùng đúng lối trình bày đề trắc nghiệm trong mẫu: 'Câu 1. Tính: 37 + 62 = ...' với bốn lựa chọn ngắn A, B, C, D; trong JSON, options là mảng đúng 4 chuỗi, không thêm nhãn A-D vào chuỗi. Hãy tạo câu hỏi Toán lớp 1 an toàn, rõ ràng và trả về JSON {questions: QuizQuestion[]}. Không dùng kiến thức vượt chương trình. Tạo đúng count câu: nửa đầu phase normal, nửa sau phase challenge; id từ 1 đến count; correctAnswer phải trùng một options. Mỗi lần sinh hãy tạo một bộ câu hỏi khác, không lặp lại nội dung trong excludePrompts; variationSeed dùng để tạo biến thể mới. Câu hỏi PHẢI tự trả lời được. TUYỆT ĐỐI không tạo câu hỏi về vị trí (trên/dưới/trái/phải, 'ở đâu', 'so với'), nhận biết hình dạng/con vật, hoặc bất kỳ câu đếm số lượng nào (không dùng cụm 'Có bao nhiêu', 'có tất cả', 'đếm'); chỉ tạo câu hỏi về phép tính, so sánh và thứ tự số. Trường illustration LUÔN để chuỗi rỗng. TUYỆT ĐỐI không dùng tên file ảnh. Học sinh có chỉ số tổng thông minh intelligenceScore/100: hãy chọn độ khó của các câu sao cho phù hợp cá nhân, chỉ dùng các difficulty trong danh sách được cung cấp.",
-      },
-      {
-        role: "user",
-        content: `Hãy tạo đề toán theo yêu cầu. Toàn bộ câu hỏi và lời giải phải viết bằng tiếng Việt. Dữ liệu đầu vào: ${JSON.stringify({
-          topic: input.topic,
-          curriculumLevel: input.curriculumLevel,
-          difficulties: input.difficulties,
-          intelligenceScore: input.intelligenceScore,
-          count,
-          normalCount,
-          variationSeed: input.variationSeed,
-          excludePrompts: input.excludePrompts,
-          requiredFields: ["id", "phase", "difficulty", "skill", "prompt", "options", "correctAnswer", "explanation"],
-        })}`,
-      },
-    ],
-    0.45,
-    quizFormat,
-  );
-
-  if (Array.isArray(parsed?.questions) && parsed.questions.length > 0) {
-    const validQuestions = parsed.questions.filter(isValidQuizQuestion).slice(0, count);
-    if (validQuestions.length) return { source: "ai", questions: validQuestions };
-  }
-
-  return fallbackQuiz(count, input);
+  // Toàn bộ hệ thống sinh đề AI đều sử dụng quy trình RAG trích xuất từ library/mẫu.docx kết hợp AI
+  return generateRagQuiz(input);
 }
+
 
 function isValidQuizQuestion(value: unknown): value is QuizQuestion {
   if (!value || typeof value !== "object") return false;
@@ -1077,4 +1032,164 @@ export async function evaluatePathWithAI(input: EvaluatePathInput): Promise<Gene
     return { source: "ai", evaluation: normalizeEvaluation(parsed.evaluation, input.placement) };
   }
   return { source: "local", evaluation: local };
+}
+/* ------------------------------------------------------------------ */
+/*  RAG: sinh đề từ ngân hàng mẫu (library/mẫu.docx) + chỉ số thông minh */
+/* ------------------------------------------------------------------ */
+
+export async function generateRagQuiz(input: GenerateQuizInput): Promise<GeneratedQuiz> {
+  const count = Math.max(1, Math.min(20, input.count ?? 10));
+  const normalCount = Math.ceil(count / 2);
+  const intelligence = Math.max(0, Math.min(100, input.intelligenceScore ?? 50));
+  const difficulties: Difficulty[] =
+    input.difficulties && input.difficulties.length ? input.difficulties : ["A", "B", "C", "D", "E"];
+
+  // 1. RAG Retrieval: Truy xuất các câu hỏi tương quan nhất từ library/mẫu.docx dựa trên Topic, Level & Chỉ số thông minh
+  const context = retrievePersonalizedContext({
+    topic: input.topic,
+    curriculumLevel: input.curriculumLevel,
+    intelligenceScore: intelligence,
+    difficulties,
+    count: Math.min(count, 4),
+    variationSeed: input.variationSeed ?? input.topic,
+    excludePrompts: input.excludePrompts,
+  });
+
+  const contextText = context
+    .map(
+      (q, i) =>
+        `Mẫu ${i + 1} (Đề ${q.deck}, câu ${q.index} | Kỹ năng: ${q.skill} | Độ khó: ${q.difficulty}):\n` +
+        `- Đề bài: ${q.prompt}\n` +
+        `- Lựa chọn: ${q.options.join(" / ")}\n` +
+        `- Đáp án đúng: ${q.correctAnswer}\n` +
+        `- Hướng dẫn giải: ${q.explanation}`,
+    )
+    .join("\n\n");
+
+  const isLocalOllama = !process.env.GEMINI_API_KEY && !process.env.AI_API_KEY && !process.env.OPENAI_API_KEY;
+  const aiTargetCount = isLocalOllama ? Math.min(count, 3) : count;
+
+  const parsed = await fetchParsedAIChat(
+    [
+      {
+        role: "system",
+        content:
+          "Bạn là chuyên gia giáo dục tiểu học Việt Nam phụ trách hệ thống RAG sinh đề thích ứng kết hợp Trí Tuệ Nhân Tạo (AI). BẮT BUỘC viết 100% nội dung bằng tiếng Việt có dấu. " +
+          "Dưới đây là các câu hỏi mẫu trích xuất từ ngân hàng đề mẫu.docx (RAG context). Hãy học theo phong cách, cấu trúc câu và dạng toán trong các mẫu này để TẠO MỚI các câu hỏi tương tự nhưng đã được cá nhân hóa độ khó theo chỉ số thông minh của học sinh. " +
+          "Không sao chép y nguyên văn; câu hỏi PHẢI tính toán chính xác tuyệt đối; correctAnswer phải nằm chính xác trong options; options có đúng 4 lựa chọn không kèm nhãn A/B/C/D trong chuỗi. " +
+          "Trả về đúng định dạng JSON: {\"questions\": [{\"id\": 1, \"phase\": \"normal\", \"difficulty\": \"A\", \"skill\": \"...\", \"prompt\": \"...\", \"options\": [\"...\"], \"correctAnswer\": \"...\", \"explanation\": \"...\"}]}",
+      },
+      {
+        role: "user",
+        content: `Các câu hỏi mẫu trích từ ngân hàng đề library/mẫu.docx (RAG Context):\n${contextText}\n\n` +
+          `Yêu cầu sinh ${aiTargetCount} câu hỏi thi tự động cá nhân hoá:\n${JSON.stringify({
+            topic: input.topic,
+            curriculumLevel: input.curriculumLevel,
+            difficulties,
+            intelligenceScore: intelligence,
+            intelligenceProfile:
+              intelligence >= 75
+                ? "Học sinh giỏi/nâng cao: tăng cường bài toán có lời văn 2 bước, so sánh biểu thức, tư duy logic"
+                : intelligence >= 45
+                  ? "Học sinh khá/trung bình: cân bằng phép tính phạm vi 100, toán thực tế 1 bước, xem đồng hồ"
+                  : "Học sinh cần củng cố: số học cơ bản, so sánh số, cộng trừ không nhớ trong phạm vi 20",
+            count: aiTargetCount,
+            normalCount: Math.ceil(aiTargetCount / 2),
+            variationSeed: input.variationSeed,
+            excludePrompts: input.excludePrompts,
+          })}`,
+      },
+    ],
+    0.45,
+    "json",
+  );
+
+  if (Array.isArray(parsed?.questions) && parsed.questions.length > 0) {
+    const normalizedQuestions: QuizQuestion[] = [];
+    for (let i = 0; i < parsed.questions.length; i++) {
+      const q = parsed.questions[i] as Partial<QuizQuestion> & Record<string, unknown>;
+      if (!q || typeof q !== "object") continue;
+      const prompt = typeof q.prompt === "string" ? q.prompt.trim() : "";
+      let options = Array.isArray(q.options) ? q.options.map((o) => String(o).trim()) : [];
+      let correctAnswer = typeof q.correctAnswer === "string" ? q.correctAnswer.trim() : "";
+
+      correctAnswer = correctAnswer.replace(/^[A-D]\.\s*/i, "").trim();
+      options = options.map((opt) => opt.replace(/^[A-D]\.\s*/i, "").trim());
+
+      // Kiểm tra tính toán cơ bản để tránh AI hallucination về số học (vd: A + B hoặc A - B)
+      const mathMatch = prompt.match(/(?:Tính|kết quả của)?\s*[:\s]*(\d+)\s*([+\-−])\s*(\d+)/i);
+      if (mathMatch) {
+        const n1 = parseInt(mathMatch[1] ?? "0", 10);
+        const op = mathMatch[2];
+        const n2 = parseInt(mathMatch[3] ?? "0", 10);
+        const expected = (op === "+" ? n1 + n2 : n1 - n2).toString();
+        if (correctAnswer !== expected && options.includes(expected)) {
+          correctAnswer = expected;
+        } else if (correctAnswer !== expected) {
+          options[0] = expected;
+          correctAnswer = expected;
+        }
+      }
+
+      if (!options.includes(correctAnswer) && options.length > 0) {
+        if (["A", "B", "C", "D"].includes(correctAnswer.toUpperCase())) {
+          const idx = ["A", "B", "C", "D"].indexOf(correctAnswer.toUpperCase());
+          if (options[idx]) correctAnswer = options[idx];
+        } else {
+          options[0] = correctAnswer;
+        }
+      }
+
+      // Đảm bảo đủ 4 options
+      while (options.length < 4) {
+        const dummy = String(Math.floor(Math.random() * 90) + 10);
+        if (!options.includes(dummy)) options.push(dummy);
+      }
+
+      const normalized: QuizQuestion = {
+        id: i + 1,
+        phase: q.phase === "challenge" ? "challenge" : (i >= normalCount ? "challenge" : "normal"),
+        difficulty: (difficulties.includes(q.difficulty as Difficulty)
+          ? (q.difficulty as Difficulty)
+          : (i < normalCount ? (difficulties[0] ?? "A") : (difficulties[difficulties.length - 1] ?? "C"))),
+        skill: typeof q.skill === "string" && q.skill.trim() ? q.skill.trim() : "Toán học",
+        prompt,
+        options,
+        correctAnswer,
+        explanation: typeof q.explanation === "string" && q.explanation.trim()
+          ? q.explanation.trim()
+          : `Đáp án đúng là ${correctAnswer}.`,
+      };
+
+      if (isValidQuizQuestion(normalized)) {
+        normalizedQuestions.push(normalized);
+      }
+    }
+
+    if (normalizedQuestions.length > 0) {
+      if (normalizedQuestions.length < count) {
+        const remainingTemplates = synthesizePersonalizedQuestions(context, {
+          ...input,
+          intelligenceScore: intelligence,
+          count: count - normalizedQuestions.length,
+        });
+        const combined = [...normalizedQuestions, ...remainingTemplates].map((q, idx) => ({ ...q, id: idx + 1 }));
+        return { source: "ai", questions: combined.slice(0, count) };
+      }
+      return { source: "ai", questions: normalizedQuestions.slice(0, count) };
+    }
+  }
+
+  // 2. Fallback / Offline Generator: Tự động sinh đề cá nhân hoá từ các template mẫu.docx đã retrieve
+  const personalizedRagQuestions = synthesizePersonalizedQuestions(context, {
+    ...input,
+    intelligenceScore: intelligence,
+    count,
+  });
+
+  if (personalizedRagQuestions.length > 0) {
+    return { source: "rag", questions: personalizedRagQuestions };
+  }
+
+  return fallbackQuiz(count, input);
 }
