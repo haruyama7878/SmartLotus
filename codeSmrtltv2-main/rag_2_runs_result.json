@@ -1,0 +1,94 @@
+[
+  {
+    "run": 1,
+    "student": "Vương Xuân Sơn",
+    "exercise": {
+      "adaptive_reasoning": "Dạng bài này yêu cầu Sơn đọc hiểu tình huống và thực hiện phép trừ đúng, phù hợp với khả năng của học sinh nhanh nhưng ẩu. Đề bài liên quan đến việc chia kẹo, giúp tăng sự tập trung và giảm bẫy tư duy.",
+      "interaction_mode": "MultipleChoice",
+      "situational_context": "Vương Xuân Sơn đang chia kẹo cho bạn bè trong lớp",
+      "problem_statement": "Sơn có 50 kẹo. Sơn đã chia cho bạn 30 kẹo. Hỏi Sơn còn bao nhiêu kẹo?",
+      "options": [
+        {
+          "value": "A",
+          "text": "30",
+          "is_correct": false,
+          "distractor_logic": "Sơn đã chia 30 kẹo, không phải còn 30"
+        },
+        {
+          "value": "B",
+          "text": "50",
+          "is_correct": false,
+          "distractor_logic": "Sơn ban đầu có 50 kẹo, không phải còn 50"
+        },
+        {
+          "value": "C",
+          "text": "20",
+          "is_correct": true,
+          "distractor_logic": "50 - 30 = 20"
+        },
+        {
+          "value": "D",
+          "text": "80",
+          "is_correct": false,
+          "distractor_logic": "Sơn không có 80 kẹo, chỉ có 50"
+        }
+      ],
+      "correct_answer": "20",
+      "scaffolded_hint": "Sơn ban đầu có bao nhiêu kẹo? Sơn đã chia bao nhiêu kẹo cho bạn?",
+      "step_by_step_solution": "Sơn ban đầu có 50 kẹo. Sơn đã chia cho bạn 30 kẹo. Phép trừ: 50 - 30 = 20 (kẹo). Vậy Sơn còn 20 kẹo.",
+      "validation_equation": "50 - 30 = 20"
+    },
+    "report": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [],
+      "math_check": "Hợp lệ (50 - 30  =  20)"
+    }
+  },
+  {
+    "run": 2,
+    "student": "Lê Minh Anh",
+    "exercise": {
+      "adaptive_reasoning": "Dạng bài này ngắn gọn và đơn giản, phù hợp với tốc độ làm bài chậm của Minh Anh. Đề bài sử dụng ngữ cảnh đời sống thực tế và câu hỏi cụ thể giúp học sinh dễ hiểu và không quá tải thông tin.",
+      "interaction_mode": "MultipleChoice",
+      "situational_context": "Minh Anh đang chia kẹo cho bạn bè trong lớp.",
+      "problem_statement": "Minh Anh có 15 kẹo. Cô chia cho bạn 7 kẹo. Hỏi Minh Anh còn bao nhiêu kẹo?",
+      "options": [
+        {
+          "value": "A",
+          "text": "8",
+          "is_correct": true,
+          "distractor_logic": "Cộng ngược"
+        },
+        {
+          "value": "B",
+          "text": "12",
+          "is_correct": false,
+          "distractor_logic": "Trừ ngược"
+        },
+        {
+          "value": "C",
+          "text": "22",
+          "is_correct": false,
+          "distractor_logic": "Thêm số dư"
+        },
+        {
+          "value": "D",
+          "text": "7",
+          "is_correct": false,
+          "distractor_logic": "Trừ đúng nhưng sai vị trí"
+        }
+      ],
+      "correct_answer": "8",
+      "scaffolded_hint": "Nếu Minh Anh chia 7 kẹo cho bạn, cô sẽ còn bao nhiêu kẹo?",
+      "step_by_step_solution": "Bước 1: Minh Anh có 15 kẹo. Bước 2: Cô chia 7 kẹo cho bạn. Bước 3: 15 - 7 = 8. Vậy Minh Anh còn 8 kẹo.",
+      "validation_equation": "15 - 7 = 8"
+    },
+    "report": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [],
+      "math_check": "Hợp lệ (15 - 7  =  8)"
+    }
+  }
+]

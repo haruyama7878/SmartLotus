@@ -1,0 +1,36 @@
+{
+  "adaptive_reasoning": "Đề bài sử dụng bối cảnh quen thuộc như việc mua sắm của Xuân Sơn để kích thích sự quan tâm và hiểu rõ hơn về bài toán. Do tốc độ làm bài nhanh nhưng ẩu, đề bài cài cắm thêm thông tin không liên quan để rèn kỹ năng đọc hiểu.",
+  "interaction_mode": "MultipleChoice",
+  "situational_context": "Xuân Sơn đang ở trong cửa hàng sách vở.",
+  "problem_statement": "Xuân Sơn có 54 quyển truyện tranh. Trong đó, 27 quyển truyện tranh là truyện tranh Trung Quốc. Hỏi Xuân Sơn còn lại bao nhiêu quyển truyện tranh Việt Nam? Phép tính: 54 - 27 = 27 (quyển truyện tranh Việt Nam).",
+  "options": [
+    {
+      "value": "A",
+      "text": "27 quyển",
+      "is_correct": true,
+      "distractor_logic": "Đáp án đúng"
+    },
+    {
+      "value": "B",
+      "text": "30 quyển",
+      "is_correct": false,
+      "distractor_logic": "Sai vì đã trừ quá nhiều"
+    },
+    {
+      "value": "C",
+      "text": "18 quyển",
+      "is_correct": false,
+      "distractor_logic": "Sai vì đã trừ chưa đủ"
+    },
+    {
+      "value": "D",
+      "text": "71 quyển",
+      "is_correct": false,
+      "distractor_logic": "Sai vì cộng thay vì trừ"
+    }
+  ],
+  "correct_answer": "A",
+  "scaffolded_hint": "Xuân Sơn đã có bao nhiêu quyển truyện tranh? Sau đó, bạn đã trừ đi bao nhiêu quyển?",
+  "step_by_step_solution": "Xuân Sơn có 54 quyển truyện tranh. Trong đó, 27 quyển là truyện tranh Trung Quốc. Để tìm số quyển truyện tranh Việt Nam, ta cần làm phép trừ: 54 - 27 = 27 (quyển truyện tranh Việt Nam).",
+  "validation_equation": "54 - 27 = 27"
+}

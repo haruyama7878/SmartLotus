@@ -765,17 +765,17 @@ export default function SmartLotusApp() {
     }
     const lesson = (catalog && catalog.length > 0)
       ? (catalog.find((entry) =>
-          entry.slug === `level-${selectedLesson.level}-${slugifyLesson(selectedLesson.lessonTitle)}`,
-        ) ?? catalog[0])
+        entry.slug === `level-${selectedLesson.level}-${slugifyLesson(selectedLesson.lessonTitle)}`,
+      ) ?? catalog[0])
       : {
-          id: 1,
-          slug: `level-${selectedLesson.level}-${slugifyLesson(selectedLesson.lessonTitle)}`,
-          curriculumLevel: selectedLesson.level,
-          title: selectedLesson.lessonTitle,
-          topic: selectedLesson.lessonTitle,
-          competency: selectedLesson.levelMeta.competency,
-          questionCount: 10,
-        };
+        id: 1,
+        slug: `level-${selectedLesson.level}-${slugifyLesson(selectedLesson.lessonTitle)}`,
+        curriculumLevel: selectedLesson.level,
+        title: selectedLesson.lessonTitle,
+        topic: selectedLesson.lessonTitle,
+        competency: selectedLesson.levelMeta.competency,
+        questionCount: 10,
+      };
 
     const questionCount = Math.max(1, Math.min(20, lesson.questionCount));
     setQuizMode(mode);
@@ -807,42 +807,42 @@ export default function SmartLotusApp() {
 
     void (async () => {
       try {
-      const generated = await smartLotusApi.generateRagQuiz({
-        topic,
-        curriculumLevel: lesson.curriculumLevel,
-        difficulties,
-        count: questionCount,
-        intelligenceScore,
-        variationSeed: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        excludePrompts,
-      });
-      if (generationId !== quizGenerationId.current || quizInteracted.current) return;
-      const uniqueQuestions = new Map<string, QuizQuestion>();
-      generated.questions.filter(isAllowedQuestion).forEach((question) => {
-        const key = questionPromptKey(question.prompt);
-        if (!seenQuizPrompts.current.has(key) && !uniqueQuestions.has(key)) uniqueQuestions.set(key, question);
-      });
-      const aiQuestions = [...uniqueQuestions.values()].slice(0, questionCount);
-      const selectedPrompts = new Set([...seenQuizPrompts.current, ...aiQuestions.map((question) => questionPromptKey(question.prompt))]);
-      const fallbackFill = makeFreshFallbackQuestions(questionBank, selectedPrompts, questionCount - aiQuestions.length);
-      const finalQuestions = [...aiQuestions, ...fallbackFill].map((question, index) => ({ ...question, id: index + 1 }));
-      if (finalQuestions.length === questionCount) {
-        finalQuestions.forEach((question) => seenQuizPrompts.current.add(questionPromptKey(question.prompt)));
-        setQuizQuestions(finalQuestions);
-      }
-      setToast(
-        (generated.source === "ai" || generated.source === "rag") && aiQuestions.length === questionCount
-          ? isJourney
-            ? attemptMode === "hard"
-              ? `Đã tạo đề bản khó cho "${lesson.title}" từ mẫu RAG`
-              : attemptMode === "retry"
-                ? `Đã tạo đề làm lại "${lesson.title}" từ mẫu RAG`
-                : `Đã tạo đề cá nhân hoá "${lesson.title}" (Chỉ số IQ ${intelligenceScore}/100) từ mẫu.docx`
-            : `Đã tạo đề ôn tập ${questionCount} câu cá nhân hoá từ mẫu.docx`
-          : generated.source === "ai" || generated.source === "rag"
-            ? `Đã tạo ${aiQuestions.length}/${questionCount} câu từ mẫu.docx; đã bổ sung câu hỏi phù hợp`
-            : "Đang dùng câu hỏi có sẵn từ ngân hàng đề"
-      );
+        const generated = await smartLotusApi.generateRagQuiz({
+          topic,
+          curriculumLevel: lesson.curriculumLevel,
+          difficulties,
+          count: questionCount,
+          intelligenceScore,
+          variationSeed: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          excludePrompts,
+        });
+        if (generationId !== quizGenerationId.current || quizInteracted.current) return;
+        const uniqueQuestions = new Map<string, QuizQuestion>();
+        generated.questions.filter(isAllowedQuestion).forEach((question) => {
+          const key = questionPromptKey(question.prompt);
+          if (!seenQuizPrompts.current.has(key) && !uniqueQuestions.has(key)) uniqueQuestions.set(key, question);
+        });
+        const aiQuestions = [...uniqueQuestions.values()].slice(0, questionCount);
+        const selectedPrompts = new Set([...seenQuizPrompts.current, ...aiQuestions.map((question) => questionPromptKey(question.prompt))]);
+        const fallbackFill = makeFreshFallbackQuestions(questionBank, selectedPrompts, questionCount - aiQuestions.length);
+        const finalQuestions = [...aiQuestions, ...fallbackFill].map((question, index) => ({ ...question, id: index + 1 }));
+        if (finalQuestions.length === questionCount) {
+          finalQuestions.forEach((question) => seenQuizPrompts.current.add(questionPromptKey(question.prompt)));
+          setQuizQuestions(finalQuestions);
+        }
+        setToast(
+          (generated.source === "ai" || generated.source === "rag") && aiQuestions.length === questionCount
+            ? isJourney
+              ? attemptMode === "hard"
+                ? `Đã tạo đề bản khó cho "${lesson.title}" từ mẫu RAG`
+                : attemptMode === "retry"
+                  ? `Đã tạo đề làm lại "${lesson.title}" từ mẫu RAG`
+                  : `Đã tạo đề cá nhân hoá "${lesson.title}" (Chỉ số IQ ${intelligenceScore}/100) từ mẫu.docx`
+              : `Đã tạo đề ôn tập ${questionCount} câu cá nhân hoá từ mẫu.docx`
+            : generated.source === "ai" || generated.source === "rag"
+              ? `Đã tạo ${aiQuestions.length}/${questionCount} câu từ mẫu.docx; đã bổ sung câu hỏi phù hợp`
+              : "Đang dùng câu hỏi có sẵn từ ngân hàng đề"
+        );
       } catch {
         if (generationId === quizGenerationId.current && !quizInteracted.current) {
           setToast("Ollama chưa phản hồi; đang dùng câu hỏi có sẵn");
@@ -1333,6 +1333,71 @@ const REGISTRATION_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1));
 const REGISTRATION_MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const REGISTRATION_YEARS = Array.from({ length: 60 }, (_, i) => String(new Date().getFullYear() - i));
 
+function PasswordInput({
+  value,
+  onChange,
+  placeholder = "••••••••",
+  autoComplete,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  autoComplete?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div
+      className="password-input-wrapper"
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        style={{
+          width: "100%",
+          paddingRight: "44px",
+        }}
+      />
+      <button
+        type="button"
+        className="password-toggle-button"
+        onClick={() => setShow((prev) => !prev)}
+        aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        title={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        tabIndex={-1}
+        style={{
+          position: "absolute",
+          right: "10px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "30px",
+          height: "30px",
+          padding: 0,
+          border: "none",
+          background: "transparent",
+          color: "#948b9b",
+          cursor: "pointer",
+          borderRadius: "6px",
+          zIndex: 2,
+        }}
+      >
+        <Icon name={show ? "eyeOff" : "eye"} size={17} />
+      </button>
+    </div>
+  );
+}
+
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstName?: string, justRegistered?: boolean) => void }) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -1616,23 +1681,25 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
-          options: { data: {
-            displayName: `${lastName.trim()} ${firstName.trim()}`,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            role: selectedRole,
-            phone,
-            province,
-            district,
-            ward: district,
-            school: school.trim(),
-            schoolCode: finalSchoolCode,
-            schoolLevel,
-            grade,
-            className: cleanClass,
-            classCode: finalClassCode,
-            birthDate: `${day}/${month}/${year}`,
-          } },
+          options: {
+            data: {
+              displayName: `${lastName.trim()} ${firstName.trim()}`,
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              role: selectedRole,
+              phone,
+              province,
+              district,
+              ward: district,
+              school: school.trim(),
+              schoolCode: finalSchoolCode,
+              schoolLevel,
+              grade,
+              className: cleanClass,
+              classCode: finalClassCode,
+              birthDate: `${day}/${month}/${year}`,
+            }
+          },
         });
         if (signUpError) throw signUpError;
         if (!data.session) {
@@ -1766,20 +1833,20 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
                       {schoolsLoading
                         ? "Đang tải danh sách trường..."
                         : !district || !schoolLevel
-                        ? "Vui lòng chọn xã/phường và cấp trường"
-                        : "-- Chọn trường học --"}
+                          ? "Vui lòng chọn xã/phường và cấp trường"
+                          : "-- Chọn trường học --"}
                     </option>
                     {schoolItems.length > 0
                       ? schoolItems.map((item) => (
-                          <option key={item.code} value={item.name}>
-                            {item.name} (Mã: {item.code})
-                          </option>
-                        ))
+                        <option key={item.code} value={item.name}>
+                          {item.name} (Mã: {item.code})
+                        </option>
+                      ))
                       : schoolOptions.map((item) => (
-                          <option key={item} value={item}>
-                            {item}
-                          </option>
-                        ))}
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
                     {district && schoolLevel && (
                       <option value="__custom__">+ Thêm trường khác...</option>
                     )}
@@ -1867,8 +1934,8 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
                         {classesLoading
                           ? "Đang tải lớp học..."
                           : !grade
-                          ? "Vui lòng chọn khối"
-                          : "-- Chọn lớp học --"}
+                            ? "Vui lòng chọn khối"
+                            : "-- Chọn lớp học --"}
                       </option>
                       {classOptions.map((item) => (
                         <option key={item.code} value={item.name}>
@@ -1954,7 +2021,15 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (role: Role, firstNa
                 </select></label>
               </div>
             )}
-            <label>Mật khẩu<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>
+            <label>
+              Mật khẩu
+              <PasswordInput
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+              />
+            </label>
             {mode === "register" && locationsError && <p className="auth-error" role="alert">{locationsError}</p>}
             {error && <p className="auth-error" role="alert"><Icon name="close" size={14} />{error}</p>}
             {notice && <p className="auth-notice" role="status"><Icon name="check" size={14} />{notice}</p>}
@@ -2047,8 +2122,8 @@ function StudentDashboard({ dashboard, greetingName, todayLabel, todayGoal, stud
   const journeyCleared = clearedLessonsBefore(evaluation);
   const overallAccuracy = attemptHistory.length
     ? Math.round(
-        (attemptHistory.reduce((sum, attempt) => sum + (attempt.totalQuestions ? attempt.correctAnswers / attempt.totalQuestions : 0), 0) / attemptHistory.length) * 100
-      )
+      (attemptHistory.reduce((sum, attempt) => sum + (attempt.totalQuestions ? attempt.correctAnswers / attempt.totalQuestions : 0), 0) / attemptHistory.length) * 100
+    )
     : 0;
   const weekly = weeklyMinutes(attemptHistory);
   const totalWeekMinutes = Math.round(weekly.reduce((sum, minutes) => sum + minutes, 0));
@@ -2418,7 +2493,7 @@ function AchievementsView({ dashboard }: { dashboard: DashboardData }) {
 }
 
 function SkillBar({ label, value }: { label: string; value: number }) {
-  return <div><span><strong>{label}</strong><b>{value}%</b></span><i><b style={{ width: `${value}%` }}/></i></div>;
+  return <div><span><strong>{label}</strong><b>{value}%</b></span><i><b style={{ width: `${value}%` }} /></i></div>;
 }
 
 const adminUsers = [
@@ -2437,11 +2512,11 @@ function AdminDashboard({ activeView }: { activeView: AdminView }) {
 
   return (
     <div className="view-stack">
-      <section className="page-intro admin-intro"><div><span className="eyebrow purple"><Icon name="shield" size={16}/> SMART LOTUS ADMIN</span><h1>Tổng quan hệ thống</h1><p>Dữ liệu cập nhật theo thời gian thực từ hệ thống học tập.</p></div><span className="system-online"><i/> Hệ thống ổn định</span></section>
-      <section className="stat-grid admin-stats">{adminMetrics.map((metric, index) => <StatCard key={metric.label} icon={(["users", "school", "book", "chart"] as IconName[])[index]} tone={metric.tone} value={metric.value} label={metric.label} change={metric.change}/>)}</section>
+      <section className="page-intro admin-intro"><div><span className="eyebrow purple"><Icon name="shield" size={16} /> SMART LOTUS ADMIN</span><h1>Tổng quan hệ thống</h1><p>Dữ liệu cập nhật theo thời gian thực từ hệ thống học tập.</p></div><span className="system-online"><i /> Hệ thống ổn định</span></section>
+      <section className="stat-grid admin-stats">{adminMetrics.map((metric, index) => <StatCard key={metric.label} icon={(["users", "school", "book", "chart"] as IconName[])[index]} tone={metric.tone} value={metric.value} label={metric.label} change={metric.change} />)}</section>
       <div className="admin-grid">
-        <section className="card admin-chart"><div className="card-heading"><div><span className="section-kicker">TƯƠNG TÁC</span><h2>Hoạt động 7 ngày qua</h2></div><button className="period-button">Tuần này <Icon name="chevron" size={15}/></button></div><div className="line-chart"><div className="grid-lines"><i/><i/><i/><i/></div><svg viewBox="0 0 700 220" preserveAspectRatio="none" aria-label="Biểu đồ hoạt động"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8b5cf6" stopOpacity=".3"/><stop offset="1" stopColor="#8b5cf6" stopOpacity="0"/></linearGradient></defs><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25 V220 H0Z" fill="url(#area)"/><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25" fill="none" stroke="#8b5cf6" strokeWidth="5" strokeLinecap="round"/><g fill="#fff" stroke="#8b5cf6" strokeWidth="4"><circle cx="0" cy="180" r="6"/><circle cx="170" cy="120" r="6"/><circle cx="340" cy="105" r="6"/><circle cx="510" cy="70" r="6"/><circle cx="700" cy="25" r="6"/></g></svg><div className="chart-days">{["T2","T3","T4","T5","T6","T7","CN"].map((day) => <span key={day}>{day}</span>)}</div></div></section>
-        <section className="card system-card"><div className="card-heading"><div><span className="section-kicker">TRẠNG THÁI</span><h2>Dịch vụ hệ thống</h2></div></div><div className="service-list"><ServiceStatus icon="database" name="PostgreSQL" detail="Kết nối bình thường"/><ServiceStatus icon="shield" name="Xác thực" detail="Hoạt động ổn định"/><ServiceStatus icon="wand" name="AI sinh câu hỏi" detail="Sẵn sàng tích hợp" standby/><ServiceStatus icon="book" name="Kho nội dung" detail="40 bài đã xuất bản"/></div></section>
+        <section className="card admin-chart"><div className="card-heading"><div><span className="section-kicker">TƯƠNG TÁC</span><h2>Hoạt động 7 ngày qua</h2></div><button className="period-button">Tuần này <Icon name="chevron" size={15} /></button></div><div className="line-chart"><div className="grid-lines"><i /><i /><i /><i /></div><svg viewBox="0 0 700 220" preserveAspectRatio="none" aria-label="Biểu đồ hoạt động"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8b5cf6" stopOpacity=".3" /><stop offset="1" stopColor="#8b5cf6" stopOpacity="0" /></linearGradient></defs><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25 V220 H0Z" fill="url(#area)" /><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25" fill="none" stroke="#8b5cf6" strokeWidth="5" strokeLinecap="round" /><g fill="#fff" stroke="#8b5cf6" strokeWidth="4"><circle cx="0" cy="180" r="6" /><circle cx="170" cy="120" r="6" /><circle cx="340" cy="105" r="6" /><circle cx="510" cy="70" r="6" /><circle cx="700" cy="25" r="6" /></g></svg><div className="chart-days">{["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => <span key={day}>{day}</span>)}</div></div></section>
+        <section className="card system-card"><div className="card-heading"><div><span className="section-kicker">TRẠNG THÁI</span><h2>Dịch vụ hệ thống</h2></div></div><div className="service-list"><ServiceStatus icon="database" name="PostgreSQL" detail="Kết nối bình thường" /><ServiceStatus icon="shield" name="Xác thực" detail="Hoạt động ổn định" /><ServiceStatus icon="wand" name="AI sinh câu hỏi" detail="Sẵn sàng tích hợp" standby /><ServiceStatus icon="book" name="Kho nội dung" detail="40 bài đã xuất bản" /></div></section>
       </div>
     </div>
   );
@@ -2646,39 +2721,43 @@ function AdminUsersView() {
             </div>
 
             <form className="account-form" onSubmit={(event) => { event.preventDefault(); void createUserAccount(); }}>
-            <label>
-              <span>Họ tên</span>
-              <input type="text" value={addUserForm.name} onChange={(event) => updateNewUserField("name", event.target.value)} />
-            </label>
+              <label>
+                <span>Họ tên</span>
+                <input type="text" value={addUserForm.name} onChange={(event) => updateNewUserField("name", event.target.value)} />
+              </label>
 
-            <label>
-              <span>Email</span>
-              <input type="email" value={addUserForm.email} onChange={(event) => updateNewUserField("email", event.target.value)} />
-            </label>
+              <label>
+                <span>Email</span>
+                <input type="email" value={addUserForm.email} onChange={(event) => updateNewUserField("email", event.target.value)} />
+              </label>
 
-            <label>
-              <span>Mật khẩu</span>
-              <input type="password" value={addUserForm.password} onChange={(event) => updateNewUserField("password", event.target.value)} />
-            </label>
+              <label>
+                <span>Mật khẩu</span>
+                <PasswordInput
+                  value={addUserForm.password}
+                  onChange={(event) => updateNewUserField("password", event.target.value)}
+                  placeholder="••••••••"
+                />
+              </label>
 
-            <label>
-              <span>Vai trò</span>
-              <select value={addUserForm.role} onChange={(event) => updateNewUserField("role", event.target.value)}>
-                <option>Học sinh</option>
-                <option>Giáo viên</option>
-                <option>Quản trị viên</option>
-              </select>
-            </label>
+              <label>
+                <span>Vai trò</span>
+                <select value={addUserForm.role} onChange={(event) => updateNewUserField("role", event.target.value)}>
+                  <option>Học sinh</option>
+                  <option>Giáo viên</option>
+                  <option>Quản trị viên</option>
+                </select>
+              </label>
 
-            <div className="add-user-actions">
-              <button type="button" className="secondary-button" onClick={() => setAddUserOpen(false)}>Hủy</button>
-              <button type="submit" className="primary-button account-save-button" disabled={creatingUser}>
-                <Icon name="check" size={16} /> {creatingUser ? "Đang tạo..." : "Tạo người dùng"}
-              </button>
-            </div>
+              <div className="add-user-actions">
+                <button type="button" className="secondary-button" onClick={() => setAddUserOpen(false)}>Hủy</button>
+                <button type="submit" className="primary-button account-save-button" disabled={creatingUser}>
+                  <Icon name="check" size={16} /> {creatingUser ? "Đang tạo..." : "Tạo người dùng"}
+                </button>
+              </div>
 
-            {createUserError && <p className="auth-error" role="alert"><Icon name="close" size={14} />{createUserError}</p>}
-            {createUserMessage && <p className="auth-notice" role="status"><Icon name="check" size={14} />{createUserMessage}</p>}
+              {createUserError && <p className="auth-error" role="alert"><Icon name="close" size={14} />{createUserError}</p>}
+              {createUserMessage && <p className="auth-notice" role="status"><Icon name="check" size={14} />{createUserMessage}</p>}
             </form>
           </section>
         </div>
@@ -2773,8 +2852,7 @@ function AdminUsersView() {
 
             <label>
               <span>Mật khẩu mới</span>
-              <input
-                type="password"
+              <PasswordInput
                 value={accountForm.password}
                 placeholder="Nhập mật khẩu mới"
                 onChange={(event) => updateAccountField("password", event.target.value)}
@@ -2875,59 +2953,59 @@ function AdminContentView() {
             </div>
 
             <div className="account-form">
-            <label>
-              <span>Tiêu đề</span>
-              <input type="text" value={contentDraft.title} onChange={(event) => updateDraft("title", event.target.value)} />
-            </label>
+              <label>
+                <span>Tiêu đề</span>
+                <input type="text" value={contentDraft.title} onChange={(event) => updateDraft("title", event.target.value)} />
+              </label>
 
-            <label>
-              <span>Loại nội dung</span>
-              <select value={contentDraft.type} onChange={(event) => updateDraft("type", event.target.value)}>
-                <option>Bài học</option>
-                <option>Trò chơi</option>
-                <option>Lộ trình</option>
-              </select>
-            </label>
+              <label>
+                <span>Loại nội dung</span>
+                <select value={contentDraft.type} onChange={(event) => updateDraft("type", event.target.value)}>
+                  <option>Bài học</option>
+                  <option>Trò chơi</option>
+                  <option>Lộ trình</option>
+                </select>
+              </label>
 
-            <label>
-              <span>Cấp độ</span>
-              <select value={contentDraft.level} onChange={(event) => updateDraft("level", event.target.value)}>
-                <option>Level 1</option>
-                <option>Level 2</option>
-                <option>Level 3</option>
-                <option>Level 4</option>
-                <option>Tổng hợp</option>
-              </select>
-            </label>
+              <label>
+                <span>Cấp độ</span>
+                <select value={contentDraft.level} onChange={(event) => updateDraft("level", event.target.value)}>
+                  <option>Level 1</option>
+                  <option>Level 2</option>
+                  <option>Level 3</option>
+                  <option>Level 4</option>
+                  <option>Tổng hợp</option>
+                </select>
+              </label>
 
-            <label>
-              <span>Trạng thái</span>
-              <select value={contentDraft.status} onChange={(event) => updateDraft("status", event.target.value)}>
-                <option>Đang biên tập</option>
-                <option>Kiểm duyệt</option>
-                <option>Đã xuất bản</option>
-              </select>
-            </label>
+              <label>
+                <span>Trạng thái</span>
+                <select value={contentDraft.status} onChange={(event) => updateDraft("status", event.target.value)}>
+                  <option>Đang biên tập</option>
+                  <option>Kiểm duyệt</option>
+                  <option>Đã xuất bản</option>
+                </select>
+              </label>
 
-            <label>
-              <span>Mô tả</span>
-              <textarea
-                value={contentDraft.description}
-                onChange={(event) => updateDraft("description", event.target.value)}
-                rows={4}
-                style={{ minHeight: 90, resize: "vertical", padding: "10px 11px", border: "1px solid #e5e1e9", borderRadius: 10, fontFamily: "inherit" }}
-              />
-            </label>
+              <label>
+                <span>Mô tả</span>
+                <textarea
+                  value={contentDraft.description}
+                  onChange={(event) => updateDraft("description", event.target.value)}
+                  rows={4}
+                  style={{ minHeight: 90, resize: "vertical", padding: "10px 11px", border: "1px solid #e5e1e9", borderRadius: 10, fontFamily: "inherit" }}
+                />
+              </label>
 
-            <div className="add-user-actions">
-              <button type="button" className="secondary-button" onClick={() => setCreateContentOpen(false)}>Hủy</button>
-              <button type="button" className="primary-button account-save-button" onClick={createContent}>
-                <Icon name="check" size={16} /> Lưu nội dung
-              </button>
-            </div>
+              <div className="add-user-actions">
+                <button type="button" className="secondary-button" onClick={() => setCreateContentOpen(false)}>Hủy</button>
+                <button type="button" className="primary-button account-save-button" onClick={createContent}>
+                  <Icon name="check" size={16} /> Lưu nội dung
+                </button>
+              </div>
 
-            {contentError && <p className="auth-error" role="alert"><Icon name="close" size={14} />{contentError}</p>}
-            {contentSuccess && <p className="auth-notice" role="status"><Icon name="check" size={14} />{contentSuccess}</p>}
+              {contentError && <p className="auth-error" role="alert"><Icon name="close" size={14} />{contentError}</p>}
+              {contentSuccess && <p className="auth-notice" role="status"><Icon name="check" size={14} />{contentSuccess}</p>}
             </div>
           </section>
         </div>
@@ -3207,7 +3285,7 @@ function AdminConfigView() {
 }
 
 function ServiceStatus({ icon, name, detail, standby = false }: { icon: IconName; name: string; detail: string; standby?: boolean }) {
-  return <div><span><Icon name={icon}/></span><div><strong>{name}</strong><small>{detail}</small></div><em className={standby ? "standby" : ""}>{standby ? "Chờ API" : "Online"}</em></div>;
+  return <div><span><Icon name={icon} /></span><div><strong>{name}</strong><small>{detail}</small></div><em className={standby ? "standby" : ""}>{standby ? "Chờ API" : "Online"}</em></div>;
 }
 
 function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo = false, isAssignment = false }: { quizQuestions: QuizQuestion[]; onExit: () => void; onComplete: (result: QuizResult) => void; onInteract: () => void; isDemo?: boolean; isAssignment?: boolean }) {
@@ -3287,9 +3365,9 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
         ? true
         : mode === "image-select"
           ? selectedImageOptions.length > 0
-        : mode === "complete" || mode === "select"
-          ? tokens.length > 0
-          : false;
+          : mode === "complete" || mode === "select"
+            ? tokens.length > 0
+            : false;
 
   function checkInput() {
     if (selected !== null) return;
@@ -3374,11 +3452,11 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
           />
         </div>
         <button className="tt-theme-toggle" onClick={toggleTheme} aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện sáng/tối">
-          {theme === "dark" ? "☀️" : "🌙"}
+          {theme === "dark" ? <Icon name="sun" size={18} /> : <Icon name="moon" size={17} />}
         </button>
         <div className="tt-stats">
-          <span className="tt-stat"><Icon name="clock" size={14}/> {formatDuration(seconds)}</span>
-          <span className="tt-stat tt-stat-gold"><Icon name="gem" size={14}/> {score.toLocaleString("vi-VN")}</span>
+          <span className="tt-stat"><Icon name="clock" size={14} /> {formatDuration(seconds)}</span>
+          <span className="tt-stat tt-stat-gold"><Icon name="gem" size={14} /> {score.toLocaleString("vi-VN")}</span>
         </div>
       </div>
 
@@ -3386,7 +3464,7 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
         <div key={index} className="tt-question">
           <div className="tt-chips">
             <span className={`tt-phase-chip ${question.phase}`}>
-              <Icon name={question.phase === "normal" ? "book" : "flame"} size={14}/>
+              <Icon name={question.phase === "normal" ? "book" : "flame"} size={14} />
               {question.phase === "normal" ? "Vòng Khởi động" : "Vòng Thử thách"}
             </span>
             <span className="tt-mode-chip">{MODE_LABELS[mode]}</span>
@@ -3420,8 +3498,8 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
                   >
                     <span className="tt-option-letter">{String.fromCharCode(65 + optionIndex)}</span>
                     <strong>{option}</strong>
-                    {selected !== null && isCorrect && <Icon name="check" size={18} className="tt-option-badge"/>}
-                    {selected !== null && isChosen && !isCorrect && <Icon name="close" size={18} className="tt-option-badge"/>}
+                    {selected !== null && isCorrect && <Icon name="check" size={18} className="tt-option-badge" />}
+                    {selected !== null && isChosen && !isCorrect && <Icon name="close" size={18} className="tt-option-badge" />}
                   </button>
                 );
               })}
@@ -3523,9 +3601,9 @@ function ResultScreen({ result, journeyFailed, skipEligible, onSkip, onHome, onR
     : "Bạn đã vượt quá 3 phút ở phần khó nên không nhận được điểm bonus thời gian.";
   return (
     <main className="result-shell">
-      <header className="result-header"><LotusLogo/><span><Icon name="check"/> Bài học đã hoàn thành</span></header>
+      <header className="result-header"><LotusLogo /><span><Icon name="check" /> Bài học đã hoàn thành</span></header>
       <section className="result-card">
-        <div className="result-hero"><div className="result-mascot"><LotusMascot mood="celebrate"/></div><span className="eyebrow purple">KẾT QUẢ BÀI HỌC</span><h1>{passed ? "Tuyệt vời, Minh Anh!" : "Bạn đã rất cố gắng!"}</h1><p>{passed ? `Bạn đã hoàn thành đủ ${total} câu và vượt qua điều kiện của bài học.` : "Bạn đã hoàn thành bài. Hãy xem lại phần giải thích và thử thêm một lần nữa nhé!"}</p></div>
+        <div className="result-hero"><div className="result-mascot"><LotusMascot mood="celebrate" /></div><span className="eyebrow purple">KẾT QUẢ BÀI HỌC</span><h1>{passed ? "Tuyệt vời, Minh Anh!" : "Bạn đã rất cố gắng!"}</h1><p>{passed ? `Bạn đã hoàn thành đủ ${total} câu và vượt qua điều kiện của bài học.` : "Bạn đã hoàn thành bài. Hãy xem lại phần giải thích và thử thêm một lần nữa nhé!"}</p></div>
         {journeyFailed && (
           <div className="result-rewards" style={{ borderColor: "#f3c6dc", background: "#fff5fa", marginBottom: 16 }}>
             <span>⚠️</span>
@@ -3539,10 +3617,10 @@ function ResultScreen({ result, journeyFailed, skipEligible, onSkip, onHome, onR
             <button className="primary-button" onClick={onSkip}>Nhảy qua 2 lá sen <Icon name="arrow" /></button>
           </div>
         )}
-        <div className="result-score-panel"><div className="result-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}><div><strong>{result.correct}/{total}</strong><span>Câu chính xác</span></div></div><div className="result-metrics"><div><span className="metric-icon purple"><Icon name="gem"/></span><p><small>TỔNG ĐIỂM</small><strong>{result.score.toLocaleString("vi-VN")}</strong></p></div><div><span className="metric-icon green"><Icon name="target"/></span><p><small>ĐỘ CHÍNH XÁC</small><strong>{accuracy}%</strong></p></div><div><span className="metric-icon orange"><Icon name="clock"/></span><p><small>THỜI GIAN</small><strong>{formatDuration(result.duration)}</strong></p></div></div></div>
-        <div className="result-breakdown"><div><span className="round-icon easy"><Icon name="book"/></span><p><strong>{normalTotal} câu thường · 60%</strong><small>{result.normalCorrect}/{normalTotal} đúng · {result.normalCorrect * 120} điểm</small></p><b>{result.normalCorrect * 120}/{normalTotal * 120} <Icon name="check"/></b></div><div><span className="round-icon hard"><Icon name="flame"/></span><p><strong>{challengeTotal} câu khó · 40%</strong><small>{result.hardCorrect}/{challengeTotal} đúng · {result.hardCorrect * 80} điểm</small></p><b>{result.hardCorrect * 80}/{challengeTotal * 80} <Icon name="check"/></b></div></div>
-        <div className="result-rewards"><span>🌸</span><div><small>CHI TIẾT ĐIỂM</small><strong>Điểm nền {result.baseScore} + bonus {result.bonus}</strong><p>{bonusMessage}</p></div><i/><span>🔥</span><div><small>CHUỖI HỌC TẬP</small><strong>5 ngày liên tục</strong></div></div>
-        <div className="result-next-steps"><div className="result-next-steps-heading"><div><span className="section-kicker">BƯỚC TIẾP THEO</span><h2>Chọn bài học phù hợp</h2></div><span>{nextLocked ? "Cần ôn lại trước khi học bài mới" : recommendation === "retry" ? "Nên củng cố bài này" : recommendation === "previous" ? "Nên ôn lại nền tảng" : "Bạn đã sẵn sàng tiến lên"}</span></div><div className="result-choice-grid"><button className={`result-choice ${recommendation === "previous" ? "recommended" : ""}`} onClick={onPrevious}><span className="result-choice-icon"><Icon name="arrow" className="rotate-left"/></span><span><strong>Bài trước đó</strong><small>Đếm và so sánh số</small></span>{recommendation === "previous" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "retry" ? "recommended" : ""}`} onClick={onRetry}><span className="result-choice-icon"><Icon name="sparkles"/></span><span><strong>Làm lại bài này</strong><small>Củng cố kiến thức vừa học</small></span>{recommendation === "retry" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "next" ? "recommended" : ""}`} onClick={onNext} disabled={nextLocked}><span className="result-choice-icon"><Icon name="arrow"/></span><span><strong>{nextLocked ? "Ôn lại trước" : "Bài tiếp theo"}</strong><small>{nextLocked ? "Đã dưới 50 điểm quá 3 lần" : "Trừ trong phạm vi 10"}</small></span>{!nextLocked && recommendation === "next" && <em>Nên chọn</em>}</button></div></div>
+        <div className="result-score-panel"><div className="result-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}><div><strong>{result.correct}/{total}</strong><span>Câu chính xác</span></div></div><div className="result-metrics"><div><span className="metric-icon purple"><Icon name="gem" /></span><p><small>TỔNG ĐIỂM</small><strong>{result.score.toLocaleString("vi-VN")}</strong></p></div><div><span className="metric-icon green"><Icon name="target" /></span><p><small>ĐỘ CHÍNH XÁC</small><strong>{accuracy}%</strong></p></div><div><span className="metric-icon orange"><Icon name="clock" /></span><p><small>THỜI GIAN</small><strong>{formatDuration(result.duration)}</strong></p></div></div></div>
+        <div className="result-breakdown"><div><span className="round-icon easy"><Icon name="book" /></span><p><strong>{normalTotal} câu thường · 60%</strong><small>{result.normalCorrect}/{normalTotal} đúng · {result.normalCorrect * 120} điểm</small></p><b>{result.normalCorrect * 120}/{normalTotal * 120} <Icon name="check" /></b></div><div><span className="round-icon hard"><Icon name="flame" /></span><p><strong>{challengeTotal} câu khó · 40%</strong><small>{result.hardCorrect}/{challengeTotal} đúng · {result.hardCorrect * 80} điểm</small></p><b>{result.hardCorrect * 80}/{challengeTotal * 80} <Icon name="check" /></b></div></div>
+        <div className="result-rewards"><span>🌸</span><div><small>CHI TIẾT ĐIỂM</small><strong>Điểm nền {result.baseScore} + bonus {result.bonus}</strong><p>{bonusMessage}</p></div><i /><span>🔥</span><div><small>CHUỖI HỌC TẬP</small><strong>5 ngày liên tục</strong></div></div>
+        <div className="result-next-steps"><div className="result-next-steps-heading"><div><span className="section-kicker">BƯỚC TIẾP THEO</span><h2>Chọn bài học phù hợp</h2></div><span>{nextLocked ? "Cần ôn lại trước khi học bài mới" : recommendation === "retry" ? "Nên củng cố bài này" : recommendation === "previous" ? "Nên ôn lại nền tảng" : "Bạn đã sẵn sàng tiến lên"}</span></div><div className="result-choice-grid"><button className={`result-choice ${recommendation === "previous" ? "recommended" : ""}`} onClick={onPrevious}><span className="result-choice-icon"><Icon name="arrow" className="rotate-left" /></span><span><strong>Bài trước đó</strong><small>Đếm và so sánh số</small></span>{recommendation === "previous" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "retry" ? "recommended" : ""}`} onClick={onRetry}><span className="result-choice-icon"><Icon name="sparkles" /></span><span><strong>Làm lại bài này</strong><small>Củng cố kiến thức vừa học</small></span>{recommendation === "retry" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "next" ? "recommended" : ""}`} onClick={onNext} disabled={nextLocked}><span className="result-choice-icon"><Icon name="arrow" /></span><span><strong>{nextLocked ? "Ôn lại trước" : "Bài tiếp theo"}</strong><small>{nextLocked ? "Đã dưới 50 điểm quá 3 lần" : "Trừ trong phạm vi 10"}</small></span>{!nextLocked && recommendation === "next" && <em>Nên chọn</em>}</button></div></div>
         <div className="result-actions"><button className="secondary-button" onClick={onHome}>Về trang chủ</button></div>
       </section>
     </main>

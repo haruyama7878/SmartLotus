@@ -197,7 +197,7 @@ export default function PlacementSurvey({ questions, studentName, onExit, onComp
           <div className="tt-progress-fill" style={{ width: `${Math.max(((index + (selected !== null ? 1 : 0)) / total) * 100, 3)}%` }} />
         </div>
         <button className="tt-theme-toggle" onClick={toggleTheme} aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện sáng/tối">
-          {theme === "dark" ? "☀️" : "🌙"}
+          {theme === "dark" ? <Icon name="sun" size={18} /> : <Icon name="moon" size={17} />}
         </button>
         <div className="tt-stats">
           <span className="tt-stat"><Icon name="sparkles" size={14} /> {studentName}</span>
