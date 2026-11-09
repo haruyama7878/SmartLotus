@@ -3,6 +3,7 @@ import "server-only";
 import { questions, type Difficulty, type QuizQuestion, type SurveyQuestion } from "./learning-data";
 import { makeVariant } from "./survey-variant";
 import {
+  analyzeStudentPerformanceProfile,
   retrieveContext,
   retrievePersonalizedContext,
   synthesizePersonalizedQuestions,
@@ -25,6 +26,14 @@ export type GenerateQuizInput = {
   intelligenceScore?: number;
   variationSeed?: string;
   excludePrompts?: string[];
+  /** Độ chính xác (% từ 0 đến 100) của học sinh */
+  accuracy?: number;
+  /** Điểm số của bài vừa làm (0 đến 100) */
+  lastScore?: number;
+  /** Trung bình điểm của 10 bài gần đây (0 đến 100) */
+  averageScoreLast10?: number;
+  /** Thời gian làm bài vừa qua tính bằng giây */
+  durationSeconds?: number;
 };
 
 export type GeneratedQuiz = {
@@ -867,9 +876,9 @@ function normalizeSurveyQuestion(question: SurveyQuestion, index: number): Surve
     skill: typeof question.skill === "string" && question.skill.trim() ? question.skill : "Kiến thức",
     illustration:
       typeof question.illustration === "string" &&
-      question.illustration.trim() &&
-      containsEmoji(question.illustration) &&
-      !IMAGE_FILE_PATTERN.test(question.illustration.trim())
+        question.illustration.trim() &&
+        containsEmoji(question.illustration) &&
+        !IMAGE_FILE_PATTERN.test(question.illustration.trim())
         ? question.illustration.trim()
         : undefined,
   };
@@ -883,26 +892,26 @@ export async function generateSurvey(input: GenerateSurveyInput = {}): Promise<G
   const count = Math.max(1, Math.min(30, input.count ?? 30));
   const parsed = await fetchParsedAIChat(
     [
-        {
-          role: "system",
-          content:
-            "Bạn là chuyên gia khảo sát đầu vào môn Toán lớp 1 tại Việt Nam. Tạo ĐÚNG 30 câu hỏi trắc nghiệm ngẫu nhiên, phân bổ đều 6 level của chương trình (mỗi level đúng 5 câu): Level 1 Làm quen với Toán học (vị trí, hình dạng, nhiều hơn-ít hơn, bằng nhau, đếm đồ vật); Level 2 Các số từ 0 đến 10; Level 3 Cộng và trừ trong phạm vi 10; Level 4 Các số đến 100; Level 5 Cộng và trừ trong phạm vi 100; Level 6 Toán học trong cuộc sống (hình học, độ dài, xem giờ, ngày-tuần, bài toán thực tế). Mỗi câu có đúng 4 lựa chọn, correctAnswer phải nằm trong options, id từ 1 đến 30 theo thứ tự level, phase luôn là 'normal', difficulty tăng dần từ A (Level 1) đến E (Level 6). Câu hỏi PHẢI tự trả lời được. Nếu câu cần hình minh họa (vị trí đồ vật, đếm đồ vật...), hãy đặt illustration là chuỗi EMOJI xếp đúng như bức tranh (có thể nhiều dòng bằng ký tự xuống dòng), ví dụ quả bóng ở trên ghế: '⚽\n🪑'; đếm táo: '🍎 🍎 🍎'. TUYỆT ĐỐI không dùng tên file ảnh. Không đặt câu hỏi cần hình mà không có illustration emoji. Trả về JSON {questions:[{id,level,difficulty,skill,prompt,options,correctAnswer,explanation,illustration?}]}. Không dùng kiến thức vượt chương trình lớp 1.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            count,
-            levels: [
-              { level: 1, title: "Làm quen với Toán học", difficulty: "A" },
-              { level: 2, title: "Các số từ 0 đến 10", difficulty: "B" },
-              { level: 3, title: "Cộng và trừ trong phạm vi 10", difficulty: "C" },
-              { level: 4, title: "Các số đến 100", difficulty: "C" },
-              { level: 5, title: "Cộng và trừ trong phạm vi 100", difficulty: "D" },
-              { level: 6, title: "Toán học trong cuộc sống", difficulty: "E" },
-            ],
-            requiredFields: ["id", "level", "difficulty", "skill", "prompt", "options", "correctAnswer", "explanation"],
-          }),
-        },
+      {
+        role: "system",
+        content:
+          "Bạn là chuyên gia khảo sát đầu vào môn Toán lớp 1 tại Việt Nam. Tạo ĐÚNG 30 câu hỏi trắc nghiệm ngẫu nhiên, phân bổ đều 6 level của chương trình (mỗi level đúng 5 câu): Level 1 Làm quen với Toán học (vị trí, hình dạng, nhiều hơn-ít hơn, bằng nhau, đếm đồ vật); Level 2 Các số từ 0 đến 10; Level 3 Cộng và trừ trong phạm vi 10; Level 4 Các số đến 100; Level 5 Cộng và trừ trong phạm vi 100; Level 6 Toán học trong cuộc sống (hình học, độ dài, xem giờ, ngày-tuần, bài toán thực tế). Mỗi câu có đúng 4 lựa chọn, correctAnswer phải nằm trong options, id từ 1 đến 30 theo thứ tự level, phase luôn là 'normal', difficulty tăng dần từ A (Level 1) đến E (Level 6). Câu hỏi PHẢI tự trả lời được. Nếu câu cần hình minh họa (vị trí đồ vật, đếm đồ vật...), hãy đặt illustration là chuỗi EMOJI xếp đúng như bức tranh (có thể nhiều dòng bằng ký tự xuống dòng), ví dụ quả bóng ở trên ghế: '⚽\n🪑'; đếm táo: '🍎 🍎 🍎'. TUYỆT ĐỐI không dùng tên file ảnh. Không đặt câu hỏi cần hình mà không có illustration emoji. Trả về JSON {questions:[{id,level,difficulty,skill,prompt,options,correctAnswer,explanation,illustration?}]}. Không dùng kiến thức vượt chương trình lớp 1.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          count,
+          levels: [
+            { level: 1, title: "Làm quen với Toán học", difficulty: "A" },
+            { level: 2, title: "Các số từ 0 đến 10", difficulty: "B" },
+            { level: 3, title: "Cộng và trừ trong phạm vi 10", difficulty: "C" },
+            { level: 4, title: "Các số đến 100", difficulty: "C" },
+            { level: 5, title: "Cộng và trừ trong phạm vi 100", difficulty: "D" },
+            { level: 6, title: "Toán học trong cuộc sống", difficulty: "E" },
+          ],
+          requiredFields: ["id", "level", "difficulty", "skill", "prompt", "options", "correctAnswer", "explanation"],
+        }),
+      },
     ],
     0.7,
   );
@@ -935,15 +944,15 @@ export type GeneratedVariant = {
 export async function generateSurveyVariant(question: SurveyQuestion): Promise<GeneratedVariant> {
   const parsed = await fetchParsedAIChat(
     [
-        {
-          role: "system",
-          content:
-            "Bạn là chuyên gia Toán lớp 1. Nhận một câu hỏi trắc nghiệm, hãy tạo một câu hỏi TƯƠNG TỰ: cùng dạng toán, cùng kỹ năng, cùng level và độ khó, giữ nguyên cấu trúc câu nhưng ĐỔI GIÁ TRỊ SỐ (và đối tượng nếu cần). Đảm bảo đúng 4 lựa chọn, correctAnswer nằm trong options và khớp đúng phép toán trong câu. Nếu câu cần hình minh họa, đặt illustration là chuỗi EMOJI xếp đúng bức tranh; không dùng tên file ảnh. Trả về JSON {question:{id,level,difficulty,skill,prompt,options,correctAnswer,explanation,illustration?}}.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({ question }),
-        },
+      {
+        role: "system",
+        content:
+          "Bạn là chuyên gia Toán lớp 1. Nhận một câu hỏi trắc nghiệm, hãy tạo một câu hỏi TƯƠNG TỰ: cùng dạng toán, cùng kỹ năng, cùng level và độ khó, giữ nguyên cấu trúc câu nhưng ĐỔI GIÁ TRỊ SỐ (và đối tượng nếu cần). Đảm bảo đúng 4 lựa chọn, correctAnswer nằm trong options và khớp đúng phép toán trong câu. Nếu câu cần hình minh họa, đặt illustration là chuỗi EMOJI xếp đúng bức tranh; không dùng tên file ảnh. Trả về JSON {question:{id,level,difficulty,skill,prompt,options,correctAnswer,explanation,illustration?}}.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({ question }),
+      },
     ],
     0.7,
   );
@@ -1015,15 +1024,15 @@ export async function evaluatePathWithAI(input: EvaluatePathInput): Promise<Gene
   const local = evaluatePathLocal(input.placement, input.attempts);
   const parsed = await fetchParsedAIChat(
     [
-        {
-          role: "system",
-          content:
-            "Bạn là chuyên gia đánh giá năng lực Toán lớp 1. Dựa trên kết quả khảo sát đầu vào (số câu đúng từng level từ 1 đến 6, mỗi level tối đa 5 câu) và lịch sử làm bài tập, hãy đánh giá và trả về JSON {evaluation:{intelligenceScore,startLevel,lessonIndex,recommendedDifficulties,summary,suggestions}}. intelligenceScore là chỉ số tổng thông minh từ 0 đến 100. startLevel (1-6) và lessonIndex (0-based) là điểm bắt đầu học hiện tại. recommendedDifficulties là danh sách con của ['A','B','C','D','E'] phù hợp cá nhân. summary là 1-2 câu tiếng Việt. suggestions là 2-4 gợi ý ngắn.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify(input),
-        },
+      {
+        role: "system",
+        content:
+          "Bạn là chuyên gia đánh giá năng lực Toán lớp 1. Dựa trên kết quả khảo sát đầu vào (số câu đúng từng level từ 1 đến 6, mỗi level tối đa 5 câu) và lịch sử làm bài tập, hãy đánh giá và trả về JSON {evaluation:{intelligenceScore,startLevel,lessonIndex,recommendedDifficulties,summary,suggestions}}. intelligenceScore là chỉ số tổng thông minh từ 0 đến 100. startLevel (1-6) và lessonIndex (0-based) là điểm bắt đầu học hiện tại. recommendedDifficulties là danh sách con của ['A','B','C','D','E'] phù hợp cá nhân. summary là 1-2 câu tiếng Việt. suggestions là 2-4 gợi ý ngắn.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify(input),
+      },
     ],
     0.35,
   );
@@ -1038,21 +1047,26 @@ export async function evaluatePathWithAI(input: EvaluatePathInput): Promise<Gene
 /* ------------------------------------------------------------------ */
 
 export async function generateRagQuiz(input: GenerateQuizInput): Promise<GeneratedQuiz> {
+  const profile = analyzeStudentPerformanceProfile(input);
   const count = Math.max(1, Math.min(20, input.count ?? 10));
   const normalCount = Math.ceil(count / 2);
-  const intelligence = Math.max(0, Math.min(100, input.intelligenceScore ?? 50));
+  const intelligence = profile.effectiveScore;
   const difficulties: Difficulty[] =
-    input.difficulties && input.difficulties.length ? input.difficulties : ["A", "B", "C", "D", "E"];
+    input.difficulties && input.difficulties.length ? input.difficulties : profile.recommendedDifficulties;
 
-  // 1. RAG Retrieval: Truy xuất các câu hỏi tương quan nhất từ library/mẫu.docx dựa trên Topic, Level & Chỉ số thông minh
+  // 1. RAG Retrieval: Truy xuất các câu hỏi tương quan nhất từ library/mẫu.docx dựa trên Topic, Level & 4 chỉ số thích ứng
   const context = retrievePersonalizedContext({
     topic: input.topic,
     curriculumLevel: input.curriculumLevel,
-    intelligenceScore: intelligence,
+    intelligenceScore: input.intelligenceScore ?? intelligence,
     difficulties,
     count: Math.min(count, 4),
     variationSeed: input.variationSeed ?? input.topic,
     excludePrompts: input.excludePrompts,
+    accuracy: input.accuracy,
+    lastScore: input.lastScore,
+    averageScoreLast10: input.averageScoreLast10,
+    durationSeconds: input.durationSeconds,
   });
 
   const contextText = context
@@ -1075,8 +1089,12 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
         role: "system",
         content:
           "Bạn là chuyên gia giáo dục tiểu học Việt Nam phụ trách hệ thống RAG sinh đề thích ứng kết hợp Trí Tuệ Nhân Tạo (AI). BẮT BUỘC viết 100% nội dung bằng tiếng Việt có dấu. " +
-          "Dưới đây là các câu hỏi mẫu trích xuất từ ngân hàng đề mẫu.docx (RAG context). Hãy học theo phong cách, cấu trúc câu và dạng toán trong các mẫu này để TẠO MỚI các câu hỏi tương tự nhưng đã được cá nhân hóa độ khó theo chỉ số thông minh của học sinh. " +
-          "Không sao chép y nguyên văn; câu hỏi PHẢI tính toán chính xác tuyệt đối; correctAnswer phải nằm chính xác trong options; options có đúng 4 lựa chọn không kèm nhãn A/B/C/D trong chuỗi. " +
+          "Dưới đây là các câu hỏi mẫu trích xuất từ ngân hàng đề mẫu.docx (RAG context). Hãy học theo phong cách, cấu trúc câu và dạng toán trong các mẫu này để TẠO MỚI các câu hỏi tương tự nhưng đã được ĐA DẠNG HÓA và CÁ NHÂN HÓA dựa trên 4 chỉ số học sinh: Độ chính xác, Điểm bài vừa làm, Điểm TB 10 bài gần đây, và Thời gian làm bài. " +
+          "QUY TẮC SƯ PHẠM ĐA DẠNG HÓA: " +
+          "- Nếu học sinh 'Nhanh nhưng ẩu' (fast_inaccurate): BẮT BUỘC cài cắm bẫy tư duy, thêm thông tin thừa trong toán lời văn, đảo thứ tự hỏi để rèn tính cẩn thận. " +
+          "- Nếu học sinh 'Chậm và quá tải' (slow_struggling): câu hỏi ngắn gọn, trực diện, số nhỏ <= 20 hoặc tròn chục, có gợi ý rõ ràng. " +
+          "- Nếu học sinh 'Bứt phá' hoặc 'Nhanh & chuẩn xác' (fast_accurate/breakthrough): tăng cường bài toán 2 bước tính, bất đẳng thức kép, suy luận quy luật. " +
+          "- Không sao chép y nguyên văn; câu hỏi PHẢI tính toán chính xác tuyệt đối; correctAnswer phải nằm chính xác trong options; options có đúng 4 lựa chọn không kèm nhãn A/B/C/D trong chuỗi. " +
           "Trả về đúng định dạng JSON: {\"questions\": [{\"id\": 1, \"phase\": \"normal\", \"difficulty\": \"A\", \"skill\": \"...\", \"prompt\": \"...\", \"options\": [\"...\"], \"correctAnswer\": \"...\", \"explanation\": \"...\"}]}",
       },
       {
@@ -1086,13 +1104,20 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
             topic: input.topic,
             curriculumLevel: input.curriculumLevel,
             difficulties,
-            intelligenceScore: intelligence,
-            intelligenceProfile:
-              intelligence >= 75
-                ? "Học sinh giỏi/nâng cao: tăng cường bài toán có lời văn 2 bước, so sánh biểu thức, tư duy logic"
-                : intelligence >= 45
-                  ? "Học sinh khá/trung bình: cân bằng phép tính phạm vi 100, toán thực tế 1 bước, xem đồng hồ"
-                  : "Học sinh cần củng cố: số học cơ bản, so sánh số, cộng trừ không nhớ trong phạm vi 20",
+            intelligenceScore: input.intelligenceScore,
+            effectiveScore: profile.effectiveScore,
+            performanceMetrics: {
+              accuracy: typeof input.accuracy === "number" ? `${input.accuracy}%` : "Chưa có",
+              lastScore: typeof input.lastScore === "number" ? `${input.lastScore}/100` : "Chưa có",
+              averageScoreLast10: typeof input.averageScoreLast10 === "number" ? `${input.averageScoreLast10}/100` : "Chưa có",
+              durationSeconds: typeof input.durationSeconds === "number" ? `${input.durationSeconds}s` : "Chưa có",
+              pacingType: profile.pacingType,
+              secondsPerQuestion: `${profile.secondsPerQuestion}s/câu`,
+              learnerArchetype: profile.learnerArchetype,
+              momentum: profile.momentum,
+            },
+            adaptiveSummary: profile.adaptiveSummary,
+            pedagogicalDirective: profile.pedagogicalDirective,
             count: aiTargetCount,
             normalCount: Math.ceil(aiTargetCount / 2),
             variationSeed: input.variationSeed,

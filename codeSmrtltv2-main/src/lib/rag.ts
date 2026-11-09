@@ -38,6 +38,42 @@ export type GenerateRagQuizInput = {
   intelligenceScore?: number;
   variationSeed?: string;
   excludePrompts?: string[];
+  /** Độ chính xác (% từ 0 đến 100) của học sinh */
+  accuracy?: number;
+  /** Điểm số của bài vừa làm (0 đến 100) */
+  lastScore?: number;
+  /** Trung bình điểm của 10 bài gần đây (0 đến 100) */
+  averageScoreLast10?: number;
+  /** Thời gian làm bài vừa qua tính bằng giây */
+  durationSeconds?: number;
+};
+
+export type StudentLearnerArchetype =
+  | "fast_inaccurate"   // Nhanh nhưng ẩu -> cần bẫy tư duy, dữ kiện thừa
+  | "fast_accurate"     // Nhanh & chuẩn xác -> bài nâng cao, 2 bước, logic
+  | "slow_struggling"   // Chậm & quá tải nhận thức -> đề ngắn gọn, trực diện, số nhỏ
+  | "slow_careful"      // Chậm nhưng cẩn thận -> rèn phản xạ tính nhanh, quy luật số
+  | "balanced";         // Tiến độ cân bằng
+
+export type StudentPerformanceMomentum =
+  | "breakthrough"        // Bài vừa làm tăng vọt so với TB 10 bài -> bứt phá
+  | "drop_recovery"       // Bài vừa làm tụt sâu bất thường -> phục hồi tự tin
+  | "consistent_mastery"  // Phong độ cao ổn định -> đa dạng hoá tối đa
+  | "needs_foundation"    // Điểm thấp kéo dài -> củng cố nền tảng
+  | "steady";             // Tiến độ đều đặn
+
+export type StudentPerformanceProfile = {
+  effectiveScore: number;
+  pacingType: "fast" | "moderate" | "slow";
+  secondsPerQuestion: number;
+  learnerArchetype: StudentLearnerArchetype;
+  momentum: StudentPerformanceMomentum;
+  recommendedDifficulties: Difficulty[];
+  adaptiveSummary: string;
+  pedagogicalDirective: string;
+  distractorTrapRequired: boolean;
+  twoStepProblemRequired: boolean;
+  simplifiedWordingRequired: boolean;
 };
 
 const ragBank: RagKnowledgeQuestion[] = rawRagBank as RagKnowledgeQuestion[];
@@ -68,6 +104,148 @@ function shuffleWithRng<T>(items: T[], rng: () => number): T[] {
 }
 
 /**
+ * Phân tích chuyên sâu hồ sơ học tập đa chiều dựa trên 4 chỉ số đầu vào:
+ * 1. Độ chính xác (accuracy)
+ * 2. Điểm của bài vừa làm (lastScore)
+ * 3. Trung bình điểm 10 bài gần đây (averageScoreLast10)
+ * 4. Thời gian làm bài (durationSeconds)
+ */
+export function analyzeStudentPerformanceProfile(input: GenerateRagQuizInput): StudentPerformanceProfile {
+  const count = Math.max(1, input.count ?? 10);
+  const baseIntel = Math.max(0, Math.min(100, input.intelligenceScore ?? 50));
+
+  // 1. Phân tích nhịp độ (Pacing)
+  const duration = typeof input.durationSeconds === "number" && input.durationSeconds > 0
+    ? input.durationSeconds
+    : count * 35;
+  const secondsPerQuestion = Math.round((duration / count) * 10) / 10;
+  const pacingType: "fast" | "moderate" | "slow" =
+    secondsPerQuestion < 20 ? "fast" : secondsPerQuestion > 45 ? "slow" : "moderate";
+
+  // 2. Điểm năng lực động (Effective Score) kết hợp 4 chỉ số
+  let weighted = baseIntel * 0.35;
+  let weightSum = 0.35;
+
+  if (typeof input.lastScore === "number") {
+    weighted += Math.max(0, Math.min(100, input.lastScore)) * 0.30;
+    weightSum += 0.30;
+  }
+  if (typeof input.averageScoreLast10 === "number") {
+    weighted += Math.max(0, Math.min(100, input.averageScoreLast10)) * 0.20;
+    weightSum += 0.20;
+  }
+  if (typeof input.accuracy === "number") {
+    weighted += Math.max(0, Math.min(100, input.accuracy)) * 0.15;
+    weightSum += 0.15;
+  }
+
+  let effectiveScore = Math.round(weighted / weightSum);
+
+  // Điều chỉnh điểm năng lực theo nhịp độ
+  if (pacingType === "fast" && (input.accuracy ?? 100) < 65) {
+    effectiveScore = Math.max(5, effectiveScore - 6); // Học sinh bấm vội, giảm để củng cố nền
+  } else if (pacingType === "fast" && (input.accuracy ?? 0) >= 85 && (input.lastScore ?? 0) >= 80) {
+    effectiveScore = Math.min(100, effectiveScore + 5); // Tốc độ nhanh và làm chuẩn, tăng thử thách
+  }
+
+  // 3. Động thái phong độ (Momentum)
+  let momentum: StudentPerformanceMomentum = "steady";
+  if (typeof input.lastScore === "number" && typeof input.averageScoreLast10 === "number") {
+    const diff = input.lastScore - input.averageScoreLast10;
+    if (diff >= 15) {
+      momentum = "breakthrough";
+    } else if (diff <= -18) {
+      momentum = "drop_recovery";
+    } else if (input.lastScore >= 80 && input.averageScoreLast10 >= 75) {
+      momentum = "consistent_mastery";
+    } else if (input.lastScore < 50 && input.averageScoreLast10 < 55) {
+      momentum = "needs_foundation";
+    }
+  } else if (typeof input.lastScore === "number") {
+    if (input.lastScore >= 85) momentum = "consistent_mastery";
+    else if (input.lastScore < 45) momentum = "needs_foundation";
+  }
+
+  // 4. Nhận diện phong cách học sinh (Learner Archetype)
+  const acc = typeof input.accuracy === "number"
+    ? input.accuracy
+    : (input.lastScore ?? baseIntel);
+  const last = typeof input.lastScore === "number" ? input.lastScore : acc;
+
+  let learnerArchetype: StudentLearnerArchetype = "balanced";
+  let distractorTrapRequired = false;
+  let twoStepProblemRequired = false;
+  let simplifiedWordingRequired = false;
+
+  if (pacingType === "fast" && (acc < 68 || last < 60)) {
+    learnerArchetype = "fast_inaccurate";
+    distractorTrapRequired = true;
+  } else if (pacingType === "fast" && acc >= 80 && last >= 75) {
+    learnerArchetype = "fast_accurate";
+    twoStepProblemRequired = true;
+  } else if (pacingType === "slow" && (acc < 60 || last < 55)) {
+    learnerArchetype = "slow_struggling";
+    simplifiedWordingRequired = true;
+  } else if (pacingType === "slow" && acc >= 75 && last >= 70) {
+    learnerArchetype = "slow_careful";
+  }
+
+  // 5. Tổng kết sư phạm & Chỉ thị thích ứng
+  let adaptiveSummary = "";
+  let pedagogicalDirective = "";
+
+  switch (learnerArchetype) {
+    case "fast_inaccurate":
+      adaptiveSummary = `Học sinh làm nhanh (~${secondsPerQuestion}s/câu) nhưng độ chính xác chưa cao (${Math.round(acc)}%), có xu hướng đọc lướt hoặc vội vàng.`;
+      pedagogicalDirective = "Cài cắm bẫy tư duy và dữ kiện thừa trong toán lời văn, yêu cầu đọc kỹ đề bài, đảo vị trí 'liền trước/liền sau' để rèn tính cẩn thận.";
+      break;
+    case "fast_accurate":
+      adaptiveSummary = `Học sinh thao tác rất nhanh (~${secondsPerQuestion}s/câu) và đạt độ chính xác xuất sắc (${Math.round(acc)}%).`;
+      pedagogicalDirective = "Tăng cường bài toán 2 bước tính, bất đẳng thức kép, suy luận quy luật và mở rộng phạm vi số để khai phóng tư duy.";
+      break;
+    case "slow_struggling":
+      adaptiveSummary = `Học sinh suy nghĩ lâu (~${secondsPerQuestion}s/câu) và độ chính xác còn thấp (${Math.round(acc)}%), có dấu hiệu quá tải nhận thức.`;
+      pedagogicalDirective = "Đề bài rút gọn trực diện, dùng số nhỏ trong phạm vi 20 hoặc số tròn chục, tăng bệ đỡ tư duy (gợi ý từng bước).";
+      break;
+    case "slow_careful":
+      adaptiveSummary = `Học sinh làm bài cẩn trọng (~${secondsPerQuestion}s/câu) và đạt độ chính xác tốt (${Math.round(acc)}%).`;
+      pedagogicalDirective = "Tập trung các câu rèn phản xạ tính nhanh, so sánh biểu thức và xem đồng hồ giúp tăng độ tự tin về tốc độ.";
+      break;
+    default:
+      adaptiveSummary = `Học sinh đạt phong độ cân bằng (Độ chính xác ${Math.round(acc)}%, ~${secondsPerQuestion}s/câu).`;
+      pedagogicalDirective = "Đa dạng hóa toàn diện các kỹ năng, cân bằng giữa bài tập củng cố và bài toán thử thách.";
+      break;
+  }
+
+  if (momentum === "breakthrough") {
+    adaptiveSummary += ` ĐẶC BIỆT: Bài vừa rồi đạt ${input.lastScore}đ, bứt phá mạnh mẽ so với điểm TB 10 bài (${input.averageScoreLast10}đ).`;
+    twoStepProblemRequired = true;
+  } else if (momentum === "drop_recovery") {
+    adaptiveSummary += ` CHÚ Ý: Bài vừa rồi đạt ${input.lastScore}đ, tụt dốc so với điểm TB 10 bài (${input.averageScoreLast10}đ). Cần bài tập hồi phục phong độ.`;
+  }
+
+  // 6. Độ khó khuyến nghị
+  const recommendedDifficulties = getRecommendedDifficulties(effectiveScore);
+  if (momentum === "breakthrough" && !recommendedDifficulties.includes("E") && effectiveScore >= 60) {
+    recommendedDifficulties.push("D");
+  }
+
+  return {
+    effectiveScore,
+    pacingType,
+    secondsPerQuestion,
+    learnerArchetype,
+    momentum,
+    recommendedDifficulties,
+    adaptiveSummary,
+    pedagogicalDirective,
+    distractorTrapRequired,
+    twoStepProblemRequired,
+    simplifiedWordingRequired,
+  };
+}
+
+/**
  * Xác định danh sách độ khó khuyến nghị dựa trên chỉ số thông minh (0 - 100)
  */
 export function getRecommendedDifficulties(intelligenceScore: number): Difficulty[] {
@@ -81,14 +259,23 @@ export function getRecommendedDifficulties(intelligenceScore: number): Difficult
 
 /**
  * Truy xuất ngữ cảnh RAG từ ngân hàng câu hỏi `library/mẫu.docx`
- * được cá nhân hoá theo chủ đề (topic), cấp độ (level) và chỉ số thông minh (intelligenceScore).
+ * được cá nhân hoá đa chiều theo:
+ * - Chủ đề (topic), cấp độ chương trình (curriculumLevel)
+ * - Độ chính xác (accuracy)
+ * - Điểm của bài vừa làm (lastScore)
+ * - Trung bình điểm 10 bài gần đây (averageScoreLast10)
+ * - Thời gian làm bài (durationSeconds)
  */
 export function retrievePersonalizedContext(input: GenerateRagQuizInput): RagKnowledgeQuestion[] {
+  const profile = analyzeStudentPerformanceProfile(input);
   const count = Math.max(1, Math.min(20, input.count ?? 10));
-  const intelligence = Math.max(0, Math.min(100, input.intelligenceScore ?? 50));
-  const targetDiffs = new Set(input.difficulties && input.difficulties.length > 0
-    ? input.difficulties
-    : getRecommendedDifficulties(intelligence));
+  const effectiveScore = profile.effectiveScore;
+
+  const targetDiffs = new Set(
+    input.difficulties && input.difficulties.length > 0
+      ? input.difficulties
+      : profile.recommendedDifficulties,
+  );
 
   const topicKeywords = (input.topic || "")
     .toLowerCase()
@@ -97,33 +284,37 @@ export function retrievePersonalizedContext(input: GenerateRagQuizInput): RagKno
     .filter((w) => w.length > 1);
 
   const seenPrompts = new Set((input.excludePrompts ?? []).map((p) => p.trim().toLowerCase()));
-  const rng = seededRandom(input.variationSeed ?? `${Date.now()}-${intelligence}`);
 
-  // Tính điểm độ tương quan (Relevance Scoring) cho từng câu trong mẫu.docx
+  // Seed kết hợp cả 4 chỉ số để tạo sự phân kỳ đề thi rõ nét giữa các học sinh và giữa các lần làm bài
+  const dynamicSeed =
+    input.variationSeed ??
+    `${Date.now()}-${effectiveScore}-${Math.round(profile.secondsPerQuestion)}-${input.lastScore ?? 0}-${Math.round(input.accuracy ?? 0)}`;
+  const rng = seededRandom(dynamicSeed);
+
+  // Tính điểm tương quan RAG thích ứng nâng cao
   const scored = ragBank
     .filter((q) => !seenPrompts.has(q.prompt.trim().toLowerCase()))
     .map((q) => {
       let score = 0;
 
-      // 1. Độ tương đồng từ khoá với Topic (trọng số 3.0)
+      // 1. Độ tương đồng từ khoá với Topic (trọng số 2.8)
       const qText = `${q.prompt} ${q.topic} ${q.skill} ${q.tags.join(" ")}`.toLowerCase();
       let keywordHits = 0;
       for (const kw of topicKeywords) {
         if (qText.includes(kw)) keywordHits += 1;
       }
       if (topicKeywords.length > 0) {
-        score += (keywordHits / topicKeywords.length) * 3.0;
+        score += (keywordHits / topicKeywords.length) * 2.8;
       } else {
         score += 1.0;
       }
 
-      // 2. Độ phù hợp với chỉ số thông minh của học sinh (trọng số 2.5)
-      // Càng gần khoảng targetScore của học sinh điểm càng cao
-      const scoreDiff = Math.abs(q.targetScore - intelligence);
+      // 2. Độ phù hợp với năng lực động (effectiveScore kết hợp 4 chỉ số) (trọng số 2.6)
+      const scoreDiff = Math.abs(q.targetScore - effectiveScore);
       const intelCloseness = Math.max(0, 1 - scoreDiff / 80);
-      score += intelCloseness * 2.5;
+      score += intelCloseness * 2.6;
 
-      // 3. Độ phù hợp với mức độ khó (trọng số 2.0)
+      // 3. Độ phù hợp với mức độ khó mục tiêu (trọng số 2.0)
       if (targetDiffs.has(q.difficulty)) {
         score += 2.0;
       }
@@ -137,8 +328,48 @@ export function retrievePersonalizedContext(input: GenerateRagQuizInput): RagKno
         score += 0.5;
       }
 
-      // Thêm chút ngẫu nhiên nhỏ dựa trên seed để đa dạng đề giữa các lần sinh
-      const jitter = rng() * 0.4;
+      // 6. THƯỞNG ĐIỂM THEO PHONG CÁCH HỌC SINH (Learner Archetype Bonus)
+      if (profile.learnerArchetype === "fast_inaccurate") {
+        // Học sinh làm nhanh nhưng ẩu: Thưởng điểm cho câu đòi hỏi đọc kỹ, phân biệt từ ngữ
+        if (
+          q.skill.includes("liền trước") ||
+          q.skill.includes("bé nhất") ||
+          q.skill.includes("lớn nhất") ||
+          q.skill.includes("lời văn") ||
+          q.skill.includes("So sánh")
+        ) {
+          score += 1.8;
+        }
+      } else if (profile.learnerArchetype === "slow_struggling") {
+        // Học sinh chậm và quá tải: Ưu tiên câu có độ khó A, B hoặc dạng tính toán trực quan ngắn gọn
+        if (q.difficulty === "A" || q.difficulty === "B") {
+          score += 1.6;
+        }
+      } else if (
+        profile.learnerArchetype === "fast_accurate" ||
+        profile.momentum === "breakthrough" ||
+        profile.momentum === "consistent_mastery"
+      ) {
+        // Học sinh giỏi hoặc bứt phá: Ưu tiên câu thử thách C, D, E và bài toán logic nhiều bước
+        if (["C", "D", "E"].includes(q.difficulty)) {
+          score += 1.8;
+        }
+        if (
+          q.skill.includes("Bất đẳng thức kép") ||
+          q.skill.includes("kế tiếp") ||
+          q.skill.includes("hai bước")
+        ) {
+          score += 1.5;
+        }
+      } else if (profile.learnerArchetype === "slow_careful") {
+        // Học sinh chậm nhưng cẩn thận: Ưu tiên câu rèn phản xạ tính nhanh
+        if (q.skill.includes("đồng hồ") || q.skill.includes("độ dài") || q.skill.includes("còn thiếu")) {
+          score += 1.4;
+        }
+      }
+
+      // Thêm jitter ngẫu nhiên hoá để tránh lặp đề giữa các lần thi
+      const jitter = rng() * 0.5;
       score += jitter;
 
       return { question: q, score };
@@ -147,14 +378,14 @@ export function retrievePersonalizedContext(input: GenerateRagQuizInput): RagKno
   // Sắp xếp giảm dần theo điểm tương quan RAG
   scored.sort((a, b) => b.score - a.score);
 
-  // Chọn top K câu đa dạng về kỹ năng
+  // Chọn top K câu đa dạng về kỹ năng (Skill Diversity)
   const selected: RagKnowledgeQuestion[] = [];
   const selectedSkills = new Set<string>();
 
   for (const item of scored) {
     if (selected.length >= count) break;
-    // Cố gắng đa dạng hoá kỹ năng
-    if (selectedSkills.has(item.question.skill) && selected.length < count * 0.7 && scored.length > count * 1.5) {
+    // Bắt buộc phân tán kỹ năng để đề thi phong phú
+    if (selectedSkills.has(item.question.skill) && selected.length < count * 0.8 && scored.length > count * 1.5) {
       continue;
     }
     selected.push(item.question);
@@ -182,9 +413,13 @@ export function synthesizePersonalizedQuestions(
   templates: RagKnowledgeQuestion[],
   input: GenerateRagQuizInput,
 ): QuizQuestion[] {
-  const intelligence = Math.max(0, Math.min(100, input.intelligenceScore ?? 50));
-  const rng = seededRandom(input.variationSeed ?? `${Date.now()}-${intelligence}`);
-  const targetDiffs = getRecommendedDifficulties(intelligence);
+  const profile = analyzeStudentPerformanceProfile(input);
+  const intelligence = profile.effectiveScore;
+  const rng = seededRandom(
+    input.variationSeed ??
+    `${Date.now()}-${intelligence}-${Math.round(profile.secondsPerQuestion)}-${input.lastScore ?? 0}-${Math.round(input.accuracy ?? 0)}`,
+  );
+  const targetDiffs = profile.recommendedDifficulties;
 
   const studentNames = ["An", "Bình", "Hoa", "Minh", "Lan", "Nga", "Đức", "Mai", "Tùng", "Tâm", "Hải", "Linh"];
   const itemNames = [
@@ -245,22 +480,43 @@ export function synthesizePersonalizedQuestions(
           : randIntSeeded(rng, 11, 25);
       const prevNum = baseNum - 1;
       const nextNum = baseNum + 1;
-      const correct = `${prevNum} và ${nextNum}`;
-      const wrong = [
-        `${prevNum - 1} và ${baseNum}`,
-        `${prevNum} và ${nextNum + 1}`,
-        `${baseNum} và ${nextNum + 1}`,
-      ];
-      generated.push({
-        id: questionId,
-        phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
-        skill: "Số liền trước - liền sau",
-        prompt: `Số liền trước và số liền sau của số ${baseNum} là:`,
-        options: makeOptionsArray(correct, wrong),
-        correctAnswer: correct,
-        explanation: `Số liền trước của ${baseNum} là ${prevNum} (${baseNum} - 1 = ${prevNum}), số liền sau của ${baseNum} là ${nextNum} (${baseNum} + 1 = ${nextNum}).`,
-      });
+
+      if (profile.distractorTrapRequired) {
+        // Cài bẫy thứ tự hỏi để rèn tính cẩn thận cho học sinh làm nhanh ẩu
+        const correct = `${nextNum} và ${prevNum}`;
+        const wrong = [
+          `${prevNum} và ${nextNum}`,
+          `${prevNum - 1} và ${baseNum}`,
+          `${baseNum} và ${nextNum + 1}`,
+        ];
+        generated.push({
+          id: questionId,
+          phase: isChallenge ? "challenge" : "normal",
+          difficulty: assignedDiff,
+          skill: "Số liền sau - liền trước (rèn đọc kỹ)",
+          prompt: `Số liền sau và số liền trước của số ${baseNum} lần lượt là:`,
+          options: makeOptionsArray(correct, wrong),
+          correctAnswer: correct,
+          explanation: `Đọc kỹ đề bài: câu hỏi hỏi số LIỀN SAU trước rồi mới đến số LIỀN TRƯỚC. Số liền sau của ${baseNum} là ${nextNum}, số liền trước của ${baseNum} là ${prevNum}. Đáp án đúng: ${nextNum} và ${prevNum}.`,
+        });
+      } else {
+        const correct = `${prevNum} và ${nextNum}`;
+        const wrong = [
+          `${prevNum - 1} và ${baseNum}`,
+          `${prevNum} và ${nextNum + 1}`,
+          `${baseNum} và ${nextNum + 1}`,
+        ];
+        generated.push({
+          id: questionId,
+          phase: isChallenge ? "challenge" : "normal",
+          difficulty: assignedDiff,
+          skill: "Số liền trước - liền sau",
+          prompt: `Số liền trước và số liền sau của số ${baseNum} là:`,
+          options: makeOptionsArray(correct, wrong),
+          correctAnswer: correct,
+          explanation: `Số liền trước của ${baseNum} là ${prevNum} (${baseNum} - 1 = ${prevNum}), số liền sau của ${baseNum} là ${nextNum} (${baseNum} + 1 = ${nextNum}).`,
+        });
+      }
       continue;
     }
 
@@ -269,6 +525,12 @@ export function synthesizePersonalizedQuestions(
       const isMin = p.includes("bé nhất");
       const baseRange = intelligence >= 70 ? [30, 99] : [10, 50];
       const numbers: number[] = [];
+      if (profile.distractorTrapRequired) {
+        // Cài bẫy chữ số đảo ngược như 37 và 73 để thử thách học sinh đọc lướt
+        const tens = randIntSeeded(rng, 2, 7);
+        const units = randIntSeeded(rng, tens + 1, 9);
+        numbers.push(tens * 10 + units, units * 10 + tens);
+      }
       while (numbers.length < 4) {
         const n = randIntSeeded(rng, baseRange[0], baseRange[1]);
         if (!numbers.includes(n)) numbers.push(n);
@@ -454,13 +716,53 @@ export function synthesizePersonalizedQuestions(
       continue;
     }
 
-    // 8. Dạng Toán có lời văn (1 bước hoặc 2 bước tuỳ IQ)
+    // 8. Dạng Toán có lời văn (Đa dạng hóa theo phong cách học tập và nhịp độ)
     if (p.includes("hỏi") || p.includes("bán") || p.includes("cho") || p.includes("mua") || p.includes("học sinh")) {
       const sName = studentNames[randIntSeeded(rng, 0, studentNames.length - 1)];
       const item = itemNames[randIntSeeded(rng, 0, itemNames.length - 1)];
 
-      if (intelligence >= 65) {
-        // Toán lời văn 2 bước tính (nâng cao)
+      if (profile.distractorTrapRequired) {
+        // Cài bẫy dữ kiện thừa cho học sinh làm nhanh nhưng ẩu
+        const initial = randIntSeeded(rng, 25, 55);
+        const sub = randIntSeeded(rng, 5, 18);
+        const extraItem = itemNames[(itemNames.indexOf(item) + 1) % itemNames.length];
+        const extraCount = randIntSeeded(rng, 8, 20);
+        const remain = initial - sub;
+        const correct = `${remain} ${item.unit}`;
+        const wrong = [
+          `${remain + extraCount} ${item.unit}`,
+          `${initial + extraCount - sub} ${item.unit}`,
+          `${Math.max(1, remain - 3)} ${item.unit}`,
+        ];
+        generated.push({
+          id: questionId,
+          phase: isChallenge ? "challenge" : "normal",
+          difficulty: assignedDiff,
+          skill: "Toán có lời văn bẫy dữ kiện thừa",
+          prompt: `Bạn ${sName} có ${initial} ${item.name} và ${extraCount} ${extraItem.name}. ${sName} tặng em ${sub} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
+          options: makeOptionsArray(correct, wrong),
+          correctAnswer: correct,
+          explanation: `Đọc kỹ đề bài: câu hỏi chỉ hỏi số ${item.name} còn lại nên số ${extraCount} ${extraItem.name} là thông tin thừa. Ta có: ${initial} - ${sub} = ${remain} (${item.unit}).`,
+        });
+      } else if (profile.simplifiedWordingRequired) {
+        // Đề bài rút gọn trực diện cho học sinh chậm / quá tải nhận thức
+        const initial = randIntSeeded(rng, 10, 20);
+        const sub = randIntSeeded(rng, 2, 7);
+        const remain = initial - sub;
+        const correct = `${remain} ${item.unit}`;
+        const wrong = makeDistractors(remain, 3, 2).map((w) => `${w} ${item.unit}`);
+        generated.push({
+          id: questionId,
+          phase: isChallenge ? "challenge" : "normal",
+          difficulty: assignedDiff,
+          skill: "Toán có lời văn cơ bản",
+          prompt: `Bạn ${sName} có ${initial} ${item.name}, ${sName} cho bạn ${sub} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
+          options: makeOptionsArray(correct, wrong),
+          correctAnswer: correct,
+          explanation: `Số ${item.name} còn lại là: ${initial} - ${sub} = ${remain} (${item.unit}).`,
+        });
+      } else if (profile.twoStepProblemRequired || intelligence >= 65) {
+        // Toán lời văn 2 bước tính (nâng cao cho học sinh bứt phá / giỏi)
         const initial = randIntSeeded(rng, 25, 60);
         const part1 = randIntSeeded(rng, 5, 15);
         const part2 = randIntSeeded(rng, 3, 10);

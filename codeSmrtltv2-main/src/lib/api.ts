@@ -242,13 +242,37 @@ export const smartLotusApi = {
       body: JSON.stringify(profile),
     });
   },
-  generateRagQuiz(input: { topic: string; curriculumLevel: number; difficulties: Array<"A" | "B" | "C" | "D" | "E">; count?: number; intelligenceScore?: number; variationSeed?: string; excludePrompts?: string[] }) {
+  generateRagQuiz(input: {
+    topic: string;
+    curriculumLevel: number;
+    difficulties: Array<"A" | "B" | "C" | "D" | "E">;
+    count?: number;
+    intelligenceScore?: number;
+    variationSeed?: string;
+    excludePrompts?: string[];
+    accuracy?: number;
+    lastScore?: number;
+    averageScoreLast10?: number;
+    durationSeconds?: number;
+  }) {
     return request<{ source: "ai" | "question-bank" | "rag"; questions: import("./learning-data").QuizQuestion[] }>("/api/generate-rag-quiz", {
       method: "POST",
       body: JSON.stringify(input),
     });
   },
-  generateQuiz(input: { topic: string; curriculumLevel: number; difficulties: Array<"A" | "B" | "C" | "D" | "E">; count?: number; intelligenceScore?: number; variationSeed?: string; excludePrompts?: string[] }) {
+  generateQuiz(input: {
+    topic: string;
+    curriculumLevel: number;
+    difficulties: Array<"A" | "B" | "C" | "D" | "E">;
+    count?: number;
+    intelligenceScore?: number;
+    variationSeed?: string;
+    excludePrompts?: string[];
+    accuracy?: number;
+    lastScore?: number;
+    averageScoreLast10?: number;
+    durationSeconds?: number;
+  }) {
     return request<{ source: "ai" | "question-bank"; questions: import("./learning-data").QuizQuestion[] }>("/api/generate-quiz", {
       method: "POST",
       body: JSON.stringify(input),

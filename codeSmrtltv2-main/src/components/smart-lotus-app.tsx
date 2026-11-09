@@ -805,6 +805,18 @@ export default function SmartLotusApp() {
     setScreen("quiz");
     setToast("Đang tạo đề bằng Ollama; bạn có thể bắt đầu học ngay.");
 
+    // Trích xuất 4 chỉ số thích ứng RAG từ lịch sử làm bài của học sinh
+    const lastAttempt = attemptHistory.length > 0 ? attemptHistory[attemptHistory.length - 1] : undefined;
+    const recent10Attempts = attemptHistory.slice(-10);
+    const ragAccuracy = lastAttempt && lastAttempt.totalQuestions > 0
+      ? Math.round((lastAttempt.correctAnswers / lastAttempt.totalQuestions) * 100)
+      : undefined;
+    const ragLastScore = lastAttempt ? lastAttempt.score : undefined;
+    const ragAverageScoreLast10 = recent10Attempts.length > 0
+      ? Math.round(recent10Attempts.reduce((sum, a) => sum + a.score, 0) / recent10Attempts.length)
+      : undefined;
+    const ragDurationSeconds = lastAttempt ? lastAttempt.durationSeconds : undefined;
+
     void (async () => {
       try {
         const generated = await smartLotusApi.generateRagQuiz({
@@ -815,6 +827,10 @@ export default function SmartLotusApp() {
           intelligenceScore,
           variationSeed: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           excludePrompts,
+          accuracy: ragAccuracy,
+          lastScore: ragLastScore,
+          averageScoreLast10: ragAverageScoreLast10,
+          durationSeconds: ragDurationSeconds,
         });
         if (generationId !== quizGenerationId.current || quizInteracted.current) return;
         const uniqueQuestions = new Map<string, QuizQuestion>();
@@ -830,15 +846,18 @@ export default function SmartLotusApp() {
           finalQuestions.forEach((question) => seenQuizPrompts.current.add(questionPromptKey(question.prompt)));
           setQuizQuestions(finalQuestions);
         }
+        const profileBadge = ragLastScore !== undefined
+          ? ` [Bài trước: ${ragLastScore}đ | ĐCX: ${ragAccuracy}% | TB10: ${ragAverageScoreLast10}đ]`
+          : "";
         setToast(
           (generated.source === "ai" || generated.source === "rag") && aiQuestions.length === questionCount
             ? isJourney
               ? attemptMode === "hard"
-                ? `Đã tạo đề bản khó cho "${lesson.title}" từ mẫu RAG`
+                ? `Đã tạo đề bản khó cho "${lesson.title}" từ mẫu RAG${profileBadge}`
                 : attemptMode === "retry"
-                  ? `Đã tạo đề làm lại "${lesson.title}" từ mẫu RAG`
-                  : `Đã tạo đề cá nhân hoá "${lesson.title}" (Chỉ số IQ ${intelligenceScore}/100) từ mẫu.docx`
-              : `Đã tạo đề ôn tập ${questionCount} câu cá nhân hoá từ mẫu.docx`
+                  ? `Đã tạo đề làm lại "${lesson.title}" từ mẫu RAG${profileBadge}`
+                  : `Đã tạo đề cá nhân hoá "${lesson.title}" (IQ ${intelligenceScore}/100${profileBadge}) từ mẫu.docx`
+              : `Đã tạo đề ôn tập ${questionCount} câu cá nhân hoá từ mẫu.docx${profileBadge}`
             : generated.source === "ai" || generated.source === "rag"
               ? `Đã tạo ${aiQuestions.length}/${questionCount} câu từ mẫu.docx; đã bổ sung câu hỏi phù hợp`
               : "Đang dùng câu hỏi có sẵn từ ngân hàng đề"

@@ -130,13 +130,63 @@ def retrieve_samples(vectorstore, query: str, k: int = 2) -> str:
     return "\n\n".join(retrieved_content)
 
 
+def analyze_performance_profile(profile: dict) -> dict:
+    """Phân tích hồ sơ 4 chỉ số thích ứng: độ chính xác, điểm bài vừa làm, điểm TB 10 bài, thời gian làm bài."""
+    acc = profile.get("accuracy", 75)
+    last = profile.get("last_score", profile.get("mastery_score", 60))
+    avg10 = profile.get("avg_score_10", last)
+    duration = profile.get("duration_seconds", 240)
+    
+    sec_per_q = duration / 10.0
+    pacing_type = "fast" if sec_per_q < 20 else ("slow" if sec_per_q > 45 else "moderate")
+    
+    # Tính momentum (động thái so sánh điểm vừa làm và TB 10 bài)
+    diff = last - avg10
+    if diff >= 15:
+        momentum = "breakthrough"
+    elif diff <= -18:
+        momentum = "drop_recovery"
+    elif last >= 80 and avg10 >= 75:
+        momentum = "consistent_mastery"
+    elif last < 50 and avg10 < 55:
+        momentum = "needs_foundation"
+    else:
+        momentum = "steady"
+        
+    # Nhận diện archetype
+    if pacing_type == "fast" and (acc < 68 or last < 60):
+        archetype = "fast_inaccurate"
+        directive = "Cài cắm bẫy tư duy và dữ kiện thừa trong toán lời văn, yêu cầu đọc kỹ đề bài."
+    elif pacing_type == "fast" and acc >= 80 and last >= 75:
+        archetype = "fast_accurate"
+        directive = "Đẩy mạnh bài toán tư duy logic, toán đố 2 bước tính, bất đẳng thức kép."
+    elif pacing_type == "slow" and (acc < 60 or last < 55):
+        archetype = "slow_struggling"
+        directive = "Đề bài rút gọn trực diện, số nhỏ <= 20 hoặc tròn chục, tăng bệ đỡ tư duy."
+    elif pacing_type == "slow" and acc >= 75:
+        archetype = "slow_careful"
+        directive = "Rèn phản xạ tính nhanh, so sánh biểu thức và quy luật số học."
+    else:
+        archetype = "balanced"
+        directive = "Cân bằng các kỹ năng số học, toán lời văn và thực tế."
+        
+    return {
+        "pacing_type": pacing_type,
+        "sec_per_q": sec_per_q,
+        "momentum": momentum,
+        "archetype": archetype,
+        "directive": directive
+    }
+
+
 def generate_hyper_personalized_exercise(
     student_profile: dict,
     rag_context: str,
     model_name: str = "qwen2.5:7b"
 ) -> dict:
-    """Sinh bài toán siêu cá nhân hóa theo định dạng JSON chuẩn sư phạm."""
+    """Sinh bài toán siêu cá nhân hóa theo định dạng JSON chuẩn sư phạm kết hợp 4 chỉ số thích ứng."""
     
+    perf = analyze_performance_profile(student_profile)
     llm = ChatOllama(
         model=model_name,
         format="json",
@@ -146,7 +196,16 @@ def generate_hyper_personalized_exercise(
     system_prompt = f"""Bạn là Chuyên gia Sư phạm Toán Tiểu học kiêm Hệ thống AI Siêu cá nhân hóa bài học Smart Lotus.
 
 NHIỆM VỤ CỐT LÕI:
-Sinh ra DUY NHẤT 1 bài tập toán học trắc nghiệm, được siêu cá nhân hóa (Hyper-Personalized) cho học sinh {student_profile.get('name', 'học sinh')} dựa trên Hồ sơ học tập và Ngữ cảnh RAG chuẩn.
+Sinh ra DUY NHẤT 1 bài tập toán học trắc nghiệm, được siêu cá nhân hóa (Hyper-Personalized) cho học sinh {student_profile.get('name', 'học sinh')} dựa trên 4 chỉ số thích ứng:
+1. Độ chính xác: {student_profile.get('accuracy', 75)}%
+2. Điểm bài vừa làm: {student_profile.get('last_score', 60)}/100
+3. Trung bình điểm 10 bài gần đây: {student_profile.get('avg_score_10', 60)}/100
+4. Thời gian làm bài: {student_profile.get('duration_seconds', 240)}s (~{perf['sec_per_q']}s/câu - Nhịp độ: {perf['pacing_type']})
+
+ĐẶC TÍNH VÀ CHIẾN LƯỢC SƯ PHẠM:
+- Nhận diện phong cách: {perf['archetype']}
+- Động thái phong độ: {perf['momentum']}
+- Chỉ thị sư phạm: {perf['directive']}
 
 CÁC QUY TẮC SƯ PHẠM NGHIÊM NGẶT:
 1. Ràng buộc Toán học:
@@ -162,9 +221,10 @@ CÁC QUY TẮC SƯ PHẠM NGHIÊM NGẶT:
 3. Cá nhân hóa theo Ngữ cảnh thực tế:
    - BẮT BUỘC sử dụng tên học sinh ({student_profile.get('name')}) lồng ghép vào bối cảnh đời sống gần gũi (chia kẹo, mua dụng cụ học tập, vẽ tranh, hoạt động cùng bạn bè trong lớp).
 
-4. Thích ứng theo Tốc độ & Lỗ hổng Micro-skills:
-   - Nếu học sinh [NHANH NHƯNG ẨU]: Cố tình cài cắm "Bẫy tư duy" bằng cách đưa thêm 1 thông tin/con số thừa không liên quan vào đề bài (ví dụ: có thêm số quyển vở hoặc số cái hộp không dùng đến) để rèn sự cẩn thận và kỹ năng lọc dữ kiện.
+4. Thích ứng theo 4 Đầu vào RAG:
+   - Nếu học sinh [NHANH NHƯNG ẨU]: Cố tình cài cắm "Bẫy tư duy" bằng cách đưa thêm 1 thông tin/con số thừa không liên quan vào đề bài (ví dụ: có thêm số quyển vở hoặc số quả cam không dùng đến) để rèn sự cẩn thận và kỹ năng lọc dữ kiện.
    - Nếu học sinh [CHẬM / QUÁ TẢI NHẬN THỨC / YẾU ĐỌC HIỂU]: Đề bài phải cực kỳ ngắn gọn, câu từ trực diện, chia nhỏ thành các câu đơn giản, không dùng câu phức gây rối.
+   - Nếu học sinh [BỨT PHÁ VƯỢT BẬC / NHANH VÀ CHUẨN XÁC]: Đẩy mạnh bài toán 2 bước tính, bất đẳng thức kép, nâng cao tư duy logic.
 
 5. Bệ đỡ tư duy (Dynamic Scaffolding):
    - Trường "scaffolded_hint" là một gợi ý bắc cầu định hướng: KHÔNG được đưa ra đáp án, chỉ là một câu hỏi phụ hoặc bước trung gian giúp học sinh tự suy nghĩ.
@@ -176,7 +236,7 @@ CÁC QUY TẮC SƯ PHẠM NGHIÊM NGẶT:
 
 Cấu trúc JSON:
 {{
-  "adaptive_reasoning": "Phân tích ngắn gọn (1 câu): Tại sao dạng bài, văn phong và độ dài này phù hợp với Tốc độ và Lỗ hổng của học sinh?",
+  "adaptive_reasoning": "Phân tích ngắn gọn (1 câu): Tại sao dạng bài, văn phong và độ dài này phù hợp với 4 chỉ số thích ứng (Độ chính xác, Điểm vừa làm, TB10 bài, Thời gian) của học sinh?",
   "interaction_mode": "MultipleChoice",
   "situational_context": "Bối cảnh sử dụng ngắn gọn",
   "problem_statement": "Nội dung câu hỏi đề bài dành cho học sinh (KHÔNG chứa phép tính giải)",
@@ -195,7 +255,13 @@ Cấu trúc JSON:
     human_prompt = f"""HỒ SƠ HỌC SINH (STUDENT PROFILE):
 - Tên học sinh: {student_profile.get('name', 'Học sinh')}
 - Điểm Mastery tổng: {student_profile.get('mastery_score', 60)}/100
-- Tốc độ làm bài: {student_profile.get('pacing', 'Bình thường')}
+- 🎯 Độ chính xác: {student_profile.get('accuracy', 75)}%
+- 📝 Điểm của bài vừa làm: {student_profile.get('last_score', 60)}/100
+- 📊 Trung bình điểm 10 bài gần đây: {student_profile.get('avg_score_10', 60)}/100
+- ⏱️ Thời gian làm bài: {student_profile.get('duration_seconds', 240)} giây (~{perf['sec_per_q']}s/câu)
+- Tốc độ làm bài: {student_profile.get('pacing', perf['pacing_type'])}
+- Phong cách học: {perf['archetype']}
+- Xu hướng phong độ: {perf['momentum']}
 - Lỗ hổng Micro-skills: {student_profile.get('micro_skills_gap', 'Cần củng cố')}
 - Mức độ bài học: {student_profile.get('grade_level', 'Lớp 2 - Phép cộng trừ có nhớ trong phạm vi 100')}
 
@@ -352,6 +418,10 @@ def main():
     profile_1 = {
         "name": "Vương Xuân Sơn",
         "mastery_score": 65,
+        "accuracy": 45,             # 1. Độ chính xác 45%
+        "last_score": 50,           # 2. Điểm bài vừa làm: 50
+        "avg_score_10": 62,         # 3. Trung bình điểm 10 bài: 62
+        "duration_seconds": 85,     # 4. Thời gian làm bài: 85 giây (~8.5s/câu - rất nhanh)
         "pacing": "Nhanh nhưng ẩu",
         "micro_skills_gap": "Yếu phần đọc hiểu, hay đọc lướt bỏ sót dữ kiện, dễ bị phân tâm",
         "grade_level": "Lớp 2 - Phép cộng trừ có nhớ trong phạm vi 100"
@@ -361,6 +431,10 @@ def main():
     profile_2 = {
         "name": "Lê Minh Anh",
         "mastery_score": 40,
+        "accuracy": 35,             # 1. Độ chính xác 35%
+        "last_score": 38,           # 2. Điểm bài vừa làm: 38
+        "avg_score_10": 42,         # 3. Trung bình điểm 10 bài: 42
+        "duration_seconds": 450,    # 4. Thời gian làm bài: 450 giây (~45s/câu - suy nghĩ lâu)
         "pacing": "Chậm, suy nghĩ lâu, dễ bị quá tải khi gặp câu dài",
         "micro_skills_gap": "Yếu tính toán có nhớ, gặp khó khăn khi trừ qua 10",
         "grade_level": "Lớp 1 - Phép trừ trong phạm vi 20"

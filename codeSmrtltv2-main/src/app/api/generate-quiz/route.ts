@@ -31,6 +31,10 @@ export async function POST(request: Request) {
       count: body.count,
       intelligenceScore: typeof body.intelligenceScore === "number" ? body.intelligenceScore : undefined,
       variationSeed: typeof body.variationSeed === "string" ? body.variationSeed.slice(0, 100) : undefined,
+      accuracy: typeof body.accuracy === "number" ? Math.max(0, Math.min(100, body.accuracy)) : undefined,
+      lastScore: typeof body.lastScore === "number" ? Math.max(0, Math.min(100, body.lastScore)) : undefined,
+      averageScoreLast10: typeof body.averageScoreLast10 === "number" ? Math.max(0, Math.min(100, body.averageScoreLast10)) : undefined,
+      durationSeconds: typeof body.durationSeconds === "number" ? Math.max(1, Math.min(7200, body.durationSeconds)) : undefined,
       excludePrompts: Array.isArray(body.excludePrompts)
         ? body.excludePrompts
             .filter((prompt): prompt is string => typeof prompt === "string")
