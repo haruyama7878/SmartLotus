@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+if command -v mvn >/dev/null 2>&1; then
+  exec mvn "$@"
+fi
+
+MAVEN_BIN="${HOME}/.local/share/apache-maven-3.9.11/bin/mvn"
+if [ -x "$MAVEN_BIN" ]; then
+  exec "$MAVEN_BIN" "$@"
+fi
+
+echo "Maven 3.9+ is required. Install it or run: docker compose up --build" >&2
+exit 1
