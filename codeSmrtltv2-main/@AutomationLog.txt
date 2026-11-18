@@ -1,1 +1,0 @@
-2026-11-03 13:58:06.118 <string>[6] <module> -> Find Control Timeout(10s): {SubName: 'Gemini', ControlType: WindowControl}

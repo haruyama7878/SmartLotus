@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Icon, type IconName, LotusLogo, LotusMascot } from "./icons";
-import { curriculum, difficultyMeta, getDefaultLessons, questions, type QuizQuestion, type SurveyQuestion } from "@/lib/learning-data";
+import { curriculum, difficultyMeta, finalizeQuizSequence, getDefaultLessons, questions, type QuizQuestion, type SurveyQuestion } from "@/lib/learning-data";
 import { adminMetrics } from "@/lib/role-data";
 import { calculateQuestionScore, calculateQuizScore, formatDuration } from "@/lib/scoring";
-import { smartLotusApi, type AttemptPayload, type ClassroomInvitation, type DashboardData, type LessonRecord, type Role } from "@/lib/api";
+import { smartLotusApi, type AttemptPayload, type ClassroomInvitation, type DashboardData, type LessonRecord, type Role, type StudentClassroomRequest } from "@/lib/api";
+import StudentExtraClasses from "./student-extra-classes";
+import TeacherExtraClasses from "./teacher-extra-classes";
+import StudentRequestModal from "./student-request-modal";
 import { supabase } from "@/lib/supabase";
 import {
   answerModeFor,
@@ -30,13 +33,14 @@ import TeacherOverview from "./teacher-overview";
 import PlacementSurvey from "./placement-survey";
 import StudentClassrooms from "./student-classrooms";
 import type { Assignment } from "@/lib/assignment-data";
+import { studentThemes } from "@/lib/student-data";
 
-type StudentView = "home" | "classrooms" | "exercises" | "roadmap" | "compete" | "achievements";
-type TeacherView = "overview" | "classes" | "assignments";
+type StudentView = "home" | "classrooms" | "extra_classes" | "exercises" | "roadmap" | "compete" | "achievements";
+type TeacherView = "overview" | "classes" | "assignments" | "extra_classes";
 type AdminView = "overview" | "users" | "content" | "data" | "config";
 type Screen = "app" | "quiz" | "result" | "survey" | "guide";
 type AuthMode = "login" | "register";
-type QuizMode = "journey" | "review" | "demo" | "assignment";
+type QuizMode = "journey" | "review" | "demo" | "assignment" | "compete";
 type AttemptMode = "normal" | "retry" | "hard";
 
 const MAP_CHAPTER_SIZE = [17, 17, 17, 17, 16, 16];
@@ -99,6 +103,7 @@ const fallbackDashboard: DashboardData = {
 const navItems: Array<{ id: StudentView; label: string; icon: IconName }> = [
   { id: "home", label: "Trang chủ", icon: "home" },
   { id: "classrooms", label: "Lớp học", icon: "school" },
+  { id: "extra_classes", label: "Lớp học thêm", icon: "sparkles" },
   { id: "exercises", label: "Bài tập", icon: "target" },
   { id: "roadmap", label: "Lộ trình", icon: "map" },
   { id: "compete", label: "Thi đấu", icon: "trophy" },
@@ -145,13 +150,16 @@ function makeFreshFallbackQuestions(
 ): QuizQuestion[] {
   if (count <= 0) return [];
 
-  const candidates = shuffle(bank);
-  const selected: QuizQuestion[] = [];
-  const selectedPrompts = new Set(excludedPrompts);
-  const normalCount = Math.ceil(count / 2);
   const allowedDifficulties: QuizQuestion["difficulty"][] = difficulties.length
     ? difficulties
     : ["A", "B", "C", "D", "E"];
+  const allowedSet = new Set(allowedDifficulties);
+  const matchingBank = shuffle(bank.filter((q) => allowedSet.has(q.difficulty)));
+  const remainingBank = shuffle(bank.filter((q) => !allowedSet.has(q.difficulty)));
+  const candidates = [...matchingBank, ...remainingBank];
+
+  const selected: QuizQuestion[] = [];
+  const selectedPrompts = new Set(excludedPrompts);
 
   for (const question of candidates) {
     const key = questionPromptKey(question.prompt);
@@ -161,48 +169,140 @@ function makeFreshFallbackQuestions(
     if (selected.length === count) break;
   }
 
-  const maxValue = curriculumLevel <= 3 ? 10 : 100;
+  const maxValue = curriculumLevel <= 3 ? 10 : 50;
   let attempt = 0;
-  while (selected.length < count && attempt < count * 100) {
+  while (selected.length < count && attempt < count * 120) {
     attempt += 1;
-    const type = Math.floor(Math.random() * 4);
-    const first = 1 + Math.floor(Math.random() * maxValue);
-    const second = Math.floor(Math.random() * (maxValue - first + 1));
-    const answer = first + second;
-    const prompt =
-      type === 0
-        ? `${first} + ${second} = ?`
-        : type === 1
-          ? `${answer} − ${first} = ?`
-          : type === 2
-            ? `${first} + ☐ = ${answer}. Số cần điền là?`
-            : `☐ − ${second} = ${first}. Số ban đầu là?`;
+    const targetDiff = allowedDifficulties[selected.length % allowedDifficulties.length];
+
+    let prompt = "";
+    let correctAnswer = "";
+    let explanation = "";
+    let skill = "Phép tính";
+    let intrinsicDiff: QuizQuestion["difficulty"] = "B";
+    let optionValues = new Set<string>();
+
+    if (targetDiff === "E") {
+      // Thử thách thực sự: Bất đẳng thức kép hoặc Suy luận bắc cầu
+      if (attempt % 2 === 0) {
+        const mid = 12 + Math.floor(Math.random() * 25);
+        const a2 = 5 + Math.floor(Math.random() * 15);
+        const b2 = 5 + Math.floor(Math.random() * 15);
+        const a1 = mid + 1 + a2;
+        const b1 = mid - 1 + b2;
+        prompt = `Điền số thích hợp vào chỗ chấm: ${a1} − ${a2} > ... > ${b1} − ${b2}`;
+        correctAnswer = String(mid);
+        explanation = `Ta có ${a1} − ${a2} = ${mid + 1} và ${b1} − ${b2} = ${mid - 1}, nên số ở giữa là ${mid}.`;
+        skill = "Bất đẳng thức kép";
+        intrinsicDiff = "E";
+        optionValues = new Set([correctAnswer, String(mid + 1), String(mid - 1), String(mid + 2)]);
+      } else {
+        const an = 3 + Math.floor(Math.random() * 6);
+        const d1 = 2 + Math.floor(Math.random() * 4);
+        const d2 = 2 + Math.floor(Math.random() * 4);
+        const minh = an + d1 + d2;
+        prompt = `An có ít hơn Bình ${d1} viên bi, Bình có ít hơn Minh ${d2} viên bi. Biết An có ${an} viên bi. Hỏi Minh có bao nhiêu viên bi?`;
+        correctAnswer = `${minh} viên`;
+        explanation = `Bình có ${an} + ${d1} = ${an + d1} viên. Minh có ${an + d1} + ${d2} = ${minh} viên.`;
+        skill = "Suy luận logic bắc cầu";
+        intrinsicDiff = "E";
+        optionValues = new Set([correctAnswer, `${an + d1} viên`, `${minh - 1} viên`, `${minh + 2} viên`]);
+      }
+    } else if (targetDiff === "D") {
+      // Giải quyết vấn đề: Tìm số hạng thứ 3 hoặc bài toán 2 bước
+      if (attempt % 2 === 0) {
+        const x1 = 5 + Math.floor(Math.random() * 20);
+        const x2 = 4 + Math.floor(Math.random() * 15);
+        const miss = 3 + Math.floor(Math.random() * 10);
+        const total = x1 + x2 + miss;
+        prompt = `Điền số thích hợp: ${x1} + ${x2} + ☐ = ${total}`;
+        correctAnswer = String(miss);
+        explanation = `Tổng hai số đầu là ${x1} + ${x2} = ${x1 + x2}. Số cần điền là ${total} − ${x1 + x2} = ${miss}.`;
+        skill = "Tìm số hạng chưa biết trong tổng 3 số";
+        intrinsicDiff = "D";
+        optionValues = new Set([correctAnswer, String(miss + 1), String(Math.max(1, miss - 1)), String(miss + 2)]);
+      } else {
+        const totalStart = 15 + Math.floor(Math.random() * 20);
+        const give1 = 3 + Math.floor(Math.random() * 6);
+        const give2 = 2 + Math.floor(Math.random() * 5);
+        const remain = totalStart - give1 - give2;
+        prompt = `Nam có ${totalStart} nhãn vở. Nam cho Lan ${give1} nhãn vở, rồi cho Minh thêm ${give2} nhãn vở. Hỏi Nam còn lại bao nhiêu nhãn vở?`;
+        correctAnswer = `${remain} chiếc`;
+        explanation = `Sau hai lần cho, Nam còn lại ${totalStart} − ${give1} − ${give2} = ${remain} nhãn vở.`;
+        skill = "Toán lời văn hai bước tính";
+        intrinsicDiff = "D";
+        optionValues = new Set([correctAnswer, `${remain + 1} chiếc`, `${Math.max(1, remain - 2)} chiếc`, `${totalStart - give1} chiếc`]);
+      }
+    } else if (targetDiff === "C") {
+      // Vận dụng: Tìm số bị trừ hoặc phép tính có hai chữ số
+      const first = 2 + Math.floor(Math.random() * (maxValue - 2));
+      const second = 1 + Math.floor(Math.random() * Math.max(2, maxValue - first));
+      const answer = first + second;
+      prompt = `☐ − ${second} = ${first}. Số ban đầu là?`;
+      correctAnswer = String(answer);
+      explanation = `Muốn tìm số bị trừ, ta lấy ${first} + ${second} = ${answer}.`;
+      skill = "Tìm số bị trừ";
+      intrinsicDiff = "C";
+      optionValues = new Set([correctAnswer]);
+      for (const offset of shuffle([1, 2, 3, 4])) {
+        const cand = answer + (Math.random() < 0.5 ? -offset : offset);
+        if (cand >= 0) optionValues.add(String(cand));
+        if (optionValues.size === 4) break;
+      }
+      while (optionValues.size < 4) optionValues.add(String(answer + optionValues.size + 1));
+    } else if (targetDiff === "A") {
+      // Nhận biết: So sánh trực tiếp 2 số
+      const a = 1 + Math.floor(Math.random() * 9);
+      const b = a + 1 + Math.floor(Math.random() * 4);
+      const isLeftBigger = Math.random() < 0.5;
+      prompt = isLeftBigger ? `Điền dấu thích hợp: ${b} ☐ ${a}` : `Điền dấu thích hợp: ${a} ☐ ${b}`;
+      correctAnswer = isLeftBigger ? ">" : "<";
+      explanation = isLeftBigger ? `${b} lớn hơn ${a} nên điền dấu >.` : `${a} bé hơn ${b} nên điền dấu <.`;
+      skill = "So sánh hai số";
+      intrinsicDiff = "A";
+      optionValues = new Set([">", "<", "=", "+"]);
+    } else {
+      // Cơ bản (B): Cộng trừ trực tiếp phạm vi 10 hoặc tìm số hạng
+      const type = attempt % 3;
+      const first = 1 + Math.floor(Math.random() * Math.min(8, maxValue));
+      const second = 1 + Math.floor(Math.random() * Math.max(1, Math.min(8, maxValue) - first));
+      const answer = first + second;
+      prompt =
+        type === 0
+          ? `${first} + ${second} = ?`
+          : type === 1
+            ? `${answer} − ${first} = ?`
+            : `${first} + ☐ = ${answer}. Số cần điền là?`;
+      const ansNum = type === 0 ? answer : second;
+      correctAnswer = String(ansNum);
+      skill = "Phép tính cơ bản";
+      intrinsicDiff = "B";
+      optionValues = new Set([correctAnswer]);
+      for (const offset of shuffle([1, 2, 3, 4])) {
+        const cand = ansNum + (Math.random() < 0.5 ? -offset : offset);
+        if (cand >= 0) optionValues.add(String(cand));
+        if (optionValues.size === 4) break;
+      }
+      while (optionValues.size < 4) optionValues.add(String(ansNum + optionValues.size + 1));
+    }
+
     const key = questionPromptKey(prompt);
     if (selectedPrompts.has(key)) continue;
-
-    const correctAnswer = String(type === 1 || type === 2 ? second : answer);
-    const optionValues = new Set([correctAnswer]);
-    for (const offset of shuffle([1, 2, 3, 4])) {
-      const candidateAnswer = Number(correctAnswer) + (Math.random() < 0.5 ? -offset : offset);
-      if (candidateAnswer >= 0 && candidateAnswer <= maxValue * 2) optionValues.add(String(candidateAnswer));
-      if (optionValues.size === 4) break;
-    }
-    while (optionValues.size < 4) optionValues.add(String(Number(correctAnswer) + optionValues.size + 1));
 
     selectedPrompts.add(key);
     selected.push({
       id: selected.length + 1,
-      phase: selected.length < normalCount ? "normal" : "challenge",
-      difficulty: allowedDifficulties[Math.floor(Math.random() * allowedDifficulties.length)],
-      skill: "Phép tính",
+      phase: "normal",
+      difficulty: intrinsicDiff,
+      skill,
       prompt,
       options: shuffle([...optionValues]),
       correctAnswer,
-      explanation: "",
+      explanation,
     });
   }
 
-  return selected.map((question, index) => ({ ...question, id: index + 1 }));
+  return finalizeQuizSequence(selected, count);
 }
 
 /** Ngân hàng câu hỏi dự phòng đã lọc (chỉ câu không cần hình minh họa). */
@@ -241,6 +341,215 @@ const DEMO_ARITHMETIC: QuizQuestion[] = [
     explanation: "2 cộng 5 bằng 7.",
   },
 ];
+
+/** Sinh bộ 10 câu hỏi ngẫu nhiên cho Thử thách tốc độ (Cộng trừ trong phạm vi 10). */
+function generateSpeedChallengeQuestions(): QuizQuestion[] {
+  const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+  const makeNumOptions = (correct: number): string[] => {
+    const pool = new Set<number>([correct]);
+    const candidates = [correct + 1, correct - 1, correct + 2, correct - 2, correct + 3, 10 - correct, 0, 10]
+      .filter((n) => n >= 0 && n <= 10 && n !== correct);
+    for (const num of candidates) {
+      if (pool.size >= 4) break;
+      pool.add(num);
+    }
+    for (let n = 0; n <= 10 && pool.size < 4; n++) {
+      if (n !== correct) pool.add(n);
+    }
+    return shuffle(Array.from(pool).map(String));
+  };
+  const makeWordOptions = (correctNum: number, unit: string): string[] => {
+    const nums = [correctNum, correctNum + 1, Math.max(0, correctNum - 1), correctNum + 2];
+    const unique = Array.from(new Set(nums.filter((n) => n >= 0)));
+    while (unique.length < 4) {
+      const candidate = unique.length + 1;
+      if (!unique.includes(candidate)) unique.push(candidate);
+      else unique.push(unique[unique.length - 1] + 2);
+    }
+    const arr = unique.slice(0, 4).map((n) => `${n} ${unit}`);
+    return shuffle(arr);
+  };
+
+  const list: QuizQuestion[] = [];
+
+  // Q1: Phép cộng cơ bản (Level A)
+  const a1 = randInt(1, 5);
+  const b1 = randInt(1, 10 - a1);
+  const sum1 = a1 + b1;
+  list.push({
+    id: 1001,
+    phase: "normal",
+    difficulty: "A",
+    skill: "Phép cộng trong phạm vi 10",
+    prompt: `${a1} + ${b1} bằng bao nhiêu?`,
+    options: makeNumOptions(sum1),
+    correctAnswer: String(sum1),
+    explanation: `${a1} cộng ${b1} bằng ${sum1}.`,
+    answerMode: "choice",
+  });
+
+  // Q2: Phép trừ cơ bản (Level A)
+  const sum2 = randInt(3, 10);
+  const b2 = randInt(1, sum2 - 1);
+  const diff2 = sum2 - b2;
+  list.push({
+    id: 1002,
+    phase: "normal",
+    difficulty: "A",
+    skill: "Phép trừ trong phạm vi 10",
+    prompt: `${sum2} − ${b2} bằng bao nhiêu?`,
+    options: makeNumOptions(diff2),
+    correctAnswer: String(diff2),
+    explanation: `${sum2} bớt đi ${b2} còn lại ${diff2}.`,
+    answerMode: "choice",
+  });
+
+  // Q3: Tìm số còn thiếu trong phép cộng (Level B)
+  const a3 = randInt(2, 6);
+  const b3 = randInt(1, 10 - a3);
+  const sum3 = a3 + b3;
+  list.push({
+    id: 1003,
+    phase: "normal",
+    difficulty: "B",
+    skill: "Tìm số còn thiếu",
+    prompt: `Điền số còn thiếu: ${a3} + ☐ = ${sum3}`,
+    options: makeNumOptions(b3),
+    correctAnswer: String(b3),
+    explanation: `Vì ${sum3} − ${a3} = ${b3} nên số cần điền là ${b3}.`,
+    answerMode: "choice",
+  });
+
+  // Q4: Tìm số còn thiếu trong phép trừ (Level B)
+  const sum4 = randInt(4, 10);
+  const b4 = randInt(1, sum4 - 2);
+  const diff4 = sum4 - b4;
+  list.push({
+    id: 1004,
+    phase: "normal",
+    difficulty: "B",
+    skill: "Tìm số còn thiếu",
+    prompt: `Điền số còn thiếu: ${sum4} − ☐ = ${diff4}`,
+    options: makeNumOptions(b4),
+    correctAnswer: String(b4),
+    explanation: `Vì ${sum4} − ${diff4} = ${b4} nên số cần điền là ${b4}.`,
+    answerMode: "choice",
+  });
+
+  // Q5: So sánh biểu thức với số (Level B)
+  const a5 = randInt(2, 5);
+  const b5 = randInt(1, 10 - a5);
+  const val5 = a5 + b5;
+  const compDiff = [-1, 0, 1][randInt(0, 2)];
+  const target5 = Math.max(1, Math.min(10, val5 + compDiff));
+  const sign5 = val5 > target5 ? ">" : val5 < target5 ? "<" : "=";
+  list.push({
+    id: 1005,
+    phase: "normal",
+    difficulty: "B",
+    skill: "So sánh phép tính",
+    prompt: `Điền dấu thích hợp (> , < , =): ${a5} + ${b5}  ☐  ${target5}`,
+    options: [">", "<", "="],
+    correctAnswer: sign5,
+    explanation: `Ta có ${a5} + ${b5} = ${val5}. Vì ${val5} ${sign5} ${target5} nên ta điền dấu ${sign5}.`,
+    answerMode: "choice",
+  });
+
+  // Q6: Bài toán thực tế thêm vào (Level C, challenge)
+  const a6 = randInt(2, 5);
+  const b6 = randInt(2, 10 - a6);
+  const total6 = a6 + b6;
+  list.push({
+    id: 1006,
+    phase: "challenge",
+    difficulty: "C",
+    skill: "Toán thực tế",
+    prompt: `Hồ sen có ${a6} bông hoa sen đã nở, thêm ${b6} bông vừa hé nụ nở tiếp. Hỏi hồ sen có tất cả bao nhiêu bông hoa sen nở?`,
+    options: makeWordOptions(total6, "bông"),
+    correctAnswer: `${total6} bông`,
+    explanation: `Phép tính: ${a6} + ${b6} = ${total6} bông hoa sen.`,
+    answerMode: "choice",
+  });
+
+  // Q7: Bài toán thực tế bớt đi (Level C, challenge)
+  const total7 = randInt(6, 10);
+  const b7 = randInt(2, total7 - 2);
+  const remain7 = total7 - b7;
+  list.push({
+    id: 1007,
+    phase: "challenge",
+    difficulty: "C",
+    skill: "Toán thực tế",
+    prompt: `Trên lá sen có ${total7} chú ếch con, có ${b7} chú nhảy xuống nước bơi lội. Hỏi trên lá sen còn lại bao nhiêu chú ếch?`,
+    options: makeWordOptions(remain7, "chú ếch"),
+    correctAnswer: `${remain7} chú ếch`,
+    explanation: `Phép tính: ${total7} − ${b7} = ${remain7} chú ếch.`,
+    answerMode: "choice",
+  });
+
+  // Q8: Dãy tính 3 số (Level C, challenge)
+  const a8 = randInt(3, 6);
+  const b8 = randInt(2, 10 - a8);
+  const c8 = randInt(1, a8 + b8 - 1);
+  const res8 = a8 + b8 - c8;
+  list.push({
+    id: 1008,
+    phase: "challenge",
+    difficulty: "C",
+    skill: "Dãy tính liên hoàn",
+    prompt: `Tính nhẩm: ${a8} + ${b8} − ${c8} = ?`,
+    options: makeNumOptions(res8),
+    correctAnswer: String(res8),
+    explanation: `Tính lần lượt từ trái sang phải: ${a8} + ${b8} = ${a8 + b8}, sau đó lấy ${a8 + b8} − ${c8} = ${res8}.`,
+    answerMode: "choice",
+  });
+
+  // Q9: So sánh hai phép tính (Level D, challenge)
+  const a9 = randInt(1, 4);
+  const b9 = randInt(2, 6);
+  const sum9 = a9 + b9;
+  const c9 = randInt(sum9, 10);
+  const d9 = randInt(0, Math.min(4, c9 - 1));
+  const diff9 = c9 - d9;
+  const sign9 = sum9 > diff9 ? ">" : sum9 < diff9 ? "<" : "=";
+  list.push({
+    id: 1009,
+    phase: "challenge",
+    difficulty: "D",
+    skill: "So sánh hai vế",
+    prompt: `Điền dấu thích hợp: ${a9} + ${b9}  ☐  ${c9} − ${d9}`,
+    options: [">", "<", "="],
+    correctAnswer: sign9,
+    explanation: `Vế trái: ${a9} + ${b9} = ${sum9}. Vế phải: ${c9} − ${d9} = ${diff9}. Vì ${sum9} ${sign9} ${diff9} nên ta điền dấu ${sign9}.`,
+    answerMode: "choice",
+  });
+
+  // Q10: Tư duy logic tổng hai số (Level D, challenge)
+  const sum10 = randInt(6, 10);
+  const a10 = randInt(2, sum10 - 2);
+  const b10 = sum10 - a10;
+  list.push({
+    id: 1010,
+    phase: "challenge",
+    difficulty: "D",
+    skill: "Tư duy logic",
+    prompt: `Hai số có tổng bằng ${sum10}. Biết số thứ nhất là ${a10}, hỏi số thứ hai là bao nhiêu?`,
+    options: makeNumOptions(b10),
+    correctAnswer: String(b10),
+    explanation: `Số thứ hai là: ${sum10} − ${a10} = ${b10}.`,
+    answerMode: "choice",
+  });
+
+  return list;
+}
 
 function slugifyLesson(value: string | undefined | null) {
   const source = value ?? "bai-hoc";
@@ -296,6 +605,9 @@ export default function SmartLotusApp() {
   const [initialIntel, setInitialIntel] = useState(50);
   const [quizMode, setQuizMode] = useState<QuizMode>("journey");
   const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
+  const [adaptiveModalAssignment, setAdaptiveModalAssignment] = useState<Assignment | null>(null);
+  const [personalizing, setPersonalizing] = useState(false);
+  const [forceAIPreference, setForceAIPreference] = useState(false);
   const [journeyFailed, setJourneyFailed] = useState(false);
   const [skipEligible, setSkipEligible] = useState(false);
   const [studyStreak, setStudyStreak] = useState(0);
@@ -312,6 +624,8 @@ export default function SmartLotusApp() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [classroomInvitations, setClassroomInvitations] = useState<ClassroomInvitation[]>([]);
+  const [teacherRequests, setTeacherRequests] = useState<StudentClassroomRequest[]>([]);
+  const [selectedRequestModal, setSelectedRequestModal] = useState<StudentClassroomRequest | null>(null);
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -370,6 +684,32 @@ export default function SmartLotusApp() {
       window.clearInterval(timer);
     };
   }, [authenticated, role]);
+
+  const knownTeacherRequests = useRef(new Set<string>());
+
+  const fetchTeacherRequests = useCallback(async () => {
+    try {
+      const { requests } = await smartLotusApi.getClassroomRequests();
+      setTeacherRequests(requests);
+      const pending = requests.filter((r) => r.status === "pending");
+      if (pending.some((r) => !knownTeacherRequests.current.has(r.id))) {
+        setToast("Có học sinh gửi yêu cầu xin vào lớp học thêm mới!");
+      }
+      knownTeacherRequests.current = new Set(requests.map((r) => r.id));
+    } catch (error) {
+      console.error("Check classroom requests error", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated || (role !== "teacher" && role !== "admin")) return;
+    knownTeacherRequests.current = new Set();
+    void fetchTeacherRequests();
+    const timer = window.setInterval(() => void fetchTeacherRequests(), 20_000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [authenticated, role, fetchTeacherRequests]);
 
   const loadDashboard = useCallback(async (nextRole: Role) => {
     setLoading(true);
@@ -544,6 +884,70 @@ export default function SmartLotusApp() {
       }
       return;
     }
+    if (quizMode === "compete") {
+      accumulateLotusPoints(quizResult.score);
+      updateStudyStreak();
+      updateTodayGoal(quizResult);
+
+      const compSlug =
+        lessonCatalog?.find((l) => l.topic.toLowerCase().includes("cộng") || l.title.toLowerCase().includes("cộng"))?.slug ??
+        lessonCatalog?.[0]?.slug ??
+        "level-3-phep-cong-10";
+
+      try {
+        await smartLotusApi.submitAttempt({
+          lessonSlug: compSlug,
+          correctAnswers: quizResult.correct,
+          totalQuestions: quizResult.total,
+          score: quizResult.score,
+          durationSeconds: quizResult.duration,
+          highestDifficulty: "D",
+          answers: quizResult.answers,
+        });
+      } catch (err) {
+        console.warn("Submit competition attempt fallback", err);
+      }
+
+      setDashboard((current) => {
+        const userAvatar = current.user.avatar;
+        const userName = current.user.displayName;
+        const fallbackWeekly: Array<{ name: string; avatar: string; points: number; isCurrentUser: boolean }> = leaderboard.map((p) => ({
+          name: p.name,
+          avatar: p.avatar,
+          points: p.points,
+          isCurrentUser: p.avatar === userAvatar || p.name === userName,
+        }));
+        const currentWeekly = current.weeklyLeaderboard.length ? [...current.weeklyLeaderboard] : fallbackWeekly;
+        const existingIdx = currentWeekly.findIndex((p) => p.isCurrentUser || p.avatar === userAvatar || p.name === userName);
+        if (existingIdx >= 0) {
+          currentWeekly[existingIdx] = {
+            ...currentWeekly[existingIdx],
+            points: currentWeekly[existingIdx].points + quizResult.score,
+            isCurrentUser: true,
+          };
+        } else {
+          currentWeekly.push({
+            name: userName,
+            avatar: userAvatar,
+            points: quizResult.score,
+            isCurrentUser: true,
+          });
+        }
+        currentWeekly.sort((a, b) => b.points - a.points);
+        return {
+          ...current,
+          weeklyLeaderboard: currentWeekly,
+          user: {
+            ...current.user,
+            lotusPoints: current.user.lotusPoints + quizResult.score,
+          },
+        };
+      });
+
+      setToast(`🏆 Xuất sắc! Bạn đạt ${quizResult.score.toLocaleString("vi-VN")} điểm sen trong Đấu trường tuần!`);
+      void loadDashboard("student");
+      return;
+    }
     const lesson = currentLesson();
     const lessonSlug = `level-${lesson.level}-${slugifyLesson(lesson.lessonTitle)}`;
     const attemptSummary: AttemptSummary = {
@@ -616,13 +1020,14 @@ export default function SmartLotusApp() {
     }
   }
 
-  function startAssignment(assignment: Assignment) {
-    if (!assignment.questions?.length) {
+  function launchAssignmentQuiz(assignment: Assignment, customQuestions?: QuizQuestion[]) {
+    const qList = customQuestions || assignment.questions;
+    if (!qList?.length) {
       setToast("Bài tập này chưa có câu hỏi.");
       return;
     }
     setActiveAssignment(assignment);
-    setQuizQuestions(assignment.questions);
+    setQuizQuestions(qList);
     quizGenerationId.current += 1;
     quizInteracted.current = false;
     setQuizMode("assignment");
@@ -633,6 +1038,45 @@ export default function SmartLotusApp() {
     setJourneyFailed(false);
     setSkipEligible(false);
     setScreen("quiz");
+  }
+
+  function startAssignment(assignment: Assignment) {
+    if (!assignment.questions?.length) {
+      setToast("Bài tập này chưa có câu hỏi.");
+      return;
+    }
+    // Nếu là bài tập thích ứng và chưa sinh câu hỏi riêng cho học sinh này
+    if (assignment.isAdaptive && !(assignment.questions[0] as any)?.personalizedFor) {
+      setAdaptiveModalAssignment(assignment);
+      return;
+    }
+    launchAssignmentQuiz(assignment);
+  }
+
+  async function handlePersonalizeAndStart(assignment: Assignment, themeName: string, forceAI = false) {
+    setPersonalizing(true);
+    try {
+      const res = await smartLotusApi.personalizeAssignment(assignment.id, { interest: themeName, forceAI });
+      const updatedAssignment: Assignment = {
+        ...assignment,
+        questions: res.questions,
+        personalizedTheme: res.studentProfile?.interest,
+        personalizedForStudent: res.studentProfile?.studentName,
+      };
+      setAdaptiveModalAssignment(null);
+      launchAssignmentQuiz(updatedAssignment, res.questions);
+      if (res.sourceMode === "ai") {
+        setToast(`🤖 Đề thi do AI Ollama sáng tác độc quyền cho ${res.studentProfile?.studentName || "bạn"} (Chủ đề: ${res.studentProfile?.interest})!`);
+      } else {
+        setToast(`🎯 Đề thi thích ứng thông minh (38+ dạng bài) đã tối ưu cho ${res.studentProfile?.studentName || "bạn"} (Chủ đề: ${res.studentProfile?.interest})!`);
+      }
+    } catch {
+      setAdaptiveModalAssignment(null);
+      launchAssignmentQuiz(assignment);
+      setToast("Đang làm bài với đề thi tiêu chuẩn.");
+    } finally {
+      setPersonalizing(false);
+    }
   }
 
   async function skipLesson() {
@@ -721,7 +1165,25 @@ export default function SmartLotusApp() {
     return `🔥 Chuỗi ${hit} ngày! Chỉ số thông minh +${bonus}`;
   }
 
+  function startCompetition() {
+    quizGenerationId.current += 1;
+    quizLessonNumber.current = undefined;
+    setQuizMode("compete");
+    setJourneyFailed(false);
+    setSkipEligible(false);
+    setQuizLesson({ level: 1, lessonTitle: "Thử thách tốc độ" });
+
+    const compQuestions = generateSpeedChallengeQuestions();
+    setQuizQuestions(compQuestions);
+    setScreen("quiz");
+    setToast("⚡ Bắt đầu Đấu trường tuần: Thử thách tốc độ! Thời gian: 05:00 · Tối đa 1.750 điểm.");
+  }
+
   async function startQuiz(mode: QuizMode = "journey", lessonNumber?: number, attemptMode: AttemptMode = "normal") {
+    if (mode === "compete") {
+      startCompetition();
+      return;
+    }
     if (mode === "demo") {
       quizGenerationId.current += 1;
       quizLessonNumber.current = undefined;
@@ -799,7 +1261,13 @@ export default function SmartLotusApp() {
     quizInteracted.current = false;
     const questionBank = FILTERED_BANK.length ? FILTERED_BANK : questions;
     const excludePrompts = [...seenQuizPrompts.current].slice(-40);
-    const fallbackQuestions = makeFreshFallbackQuestions(questionBank, seenQuizPrompts.current, questionCount);
+    const fallbackQuestions = makeFreshFallbackQuestions(
+      questionBank,
+      seenQuizPrompts.current,
+      questionCount,
+      difficulties,
+      lesson.curriculumLevel,
+    );
     fallbackQuestions.forEach((question) => seenQuizPrompts.current.add(questionPromptKey(question.prompt)));
     setQuizQuestions(fallbackQuestions);
     setScreen("quiz");
@@ -840,8 +1308,14 @@ export default function SmartLotusApp() {
         });
         const aiQuestions = [...uniqueQuestions.values()].slice(0, questionCount);
         const selectedPrompts = new Set([...seenQuizPrompts.current, ...aiQuestions.map((question) => questionPromptKey(question.prompt))]);
-        const fallbackFill = makeFreshFallbackQuestions(questionBank, selectedPrompts, questionCount - aiQuestions.length);
-        const finalQuestions = [...aiQuestions, ...fallbackFill].map((question, index) => ({ ...question, id: index + 1 }));
+        const fallbackFill = makeFreshFallbackQuestions(
+          questionBank,
+          selectedPrompts,
+          questionCount - aiQuestions.length,
+          difficulties,
+          lesson.curriculumLevel,
+        );
+        const finalQuestions = finalizeQuizSequence([...aiQuestions, ...fallbackFill], questionCount);
         if (finalQuestions.length === questionCount) {
           finalQuestions.forEach((question) => seenQuizPrompts.current.add(questionPromptKey(question.prompt)));
           setQuizQuestions(finalQuestions);
@@ -934,6 +1408,13 @@ export default function SmartLotusApp() {
 
   function exitQuiz() {
     quizGenerationId.current += 1;
+    if (quizMode === "compete") {
+      setQuizQuestions(questions);
+      setScreen("app");
+      setView("compete");
+      setToast("Đã dừng lượt thi đấu tuần.");
+      return;
+    }
     if (quizMode === "assignment") {
       setQuizQuestions(questions);
       setActiveAssignment(null);
@@ -989,24 +1470,45 @@ export default function SmartLotusApp() {
         }}
         isDemo={quizMode === "demo"}
         isAssignment={quizMode === "assignment"}
+        isCompetition={quizMode === "compete"}
       />
     );
   }
 
   if (screen === "result" && result) {
+    const isComp = quizMode === "compete";
+    const fallbackWeekly: Array<{ name: string; avatar: string; points: number; isCurrentUser: boolean }> = leaderboard.map((p) => ({
+      name: p.name,
+      avatar: p.avatar,
+      points: p.points,
+      isCurrentUser: p.avatar === dashboard.user.avatar || p.name === dashboard.user.displayName,
+    }));
+    const currentWeekly = dashboard.weeklyLeaderboard.length ? dashboard.weeklyLeaderboard : fallbackWeekly;
+    const userRankIdx = currentWeekly.findIndex(
+      (p) => p.isCurrentUser || p.avatar === dashboard.user.avatar || p.name === dashboard.user.displayName
+    );
+    const userRank = userRankIdx >= 0 ? userRankIdx + 1 : 4;
+
     return (
       <ResultScreen
         result={result}
         journeyFailed={journeyFailed}
         skipEligible={skipEligible}
+        isCompetition={isComp}
+        userRank={userRank}
+        greetingName={greetingName}
         onSkip={skipLesson}
         onHome={() => {
           setScreen("app");
-          setView(quizMode === "assignment" ? "classrooms" : "home");
+          setView(isComp ? "compete" : quizMode === "assignment" ? "classrooms" : "home");
           if (quizMode === "assignment") setActiveAssignment(null);
           else void loadDashboard("student");
         }}
         onRetry={() => {
+          if (isComp) {
+            startCompetition();
+            return;
+          }
           if (quizMode === "demo") {
             setScreen("quiz");
             return;
@@ -1020,11 +1522,16 @@ export default function SmartLotusApp() {
         }}
         onPrevious={() => {
           setScreen("app");
-          setView(quizMode === "assignment" ? "classrooms" : "exercises");
+          setView(isComp ? "compete" : quizMode === "assignment" ? "classrooms" : "exercises");
           if (quizMode === "assignment") setActiveAssignment(null);
           else setToast("Hãy ôn lại bài trước: Đếm và so sánh số");
         }}
         onNext={() => {
+          if (isComp) {
+            setScreen("app");
+            setView("compete");
+            return;
+          }
           if (quizMode === "assignment") {
             setScreen("app");
             setView("classrooms");
@@ -1039,7 +1546,7 @@ export default function SmartLotusApp() {
           setView("exercises");
           setToast("Bài tiếp theo: Trừ trong phạm vi 10");
         }}
-        nextLocked={dashboard.lowScoreAttempts > 3}
+        nextLocked={!isComp && dashboard.lowScoreAttempts > 3}
       />
     );
   }
@@ -1073,7 +1580,28 @@ export default function SmartLotusApp() {
               <button className={`nav-item ${teacherView === "overview" ? "active" : ""}`} onClick={() => { setTeacherView("overview"); setMobileOpen(false); }}><Icon name="chart" /><span>Tổng quan lớp</span></button>
               <button className={`nav-item ${teacherView === "classes" ? "active" : ""}`} onClick={() => { setTeacherView("classes"); setMobileOpen(false); }}><Icon name="school" /><span>Lớp học</span></button>
               <button className={`nav-item ${teacherView === "assignments" ? "active" : ""}`} onClick={() => { setTeacherView("assignments"); setMobileOpen(false); }}><Icon name="book" /><span>Bài tập</span></button>
-              <button className="nav-item"><Icon name="wand" /><span>Tạo câu hỏi AI</span><span className="soon-chip">Sớm</span></button>
+              <button
+                className={`nav-item ${teacherView === "extra_classes" ? "active" : ""}`}
+                onClick={() => { setTeacherView("extra_classes"); setMobileOpen(false); }}
+              >
+                <Icon name="users" />
+                <span>Lớp học thêm</span>
+                {teacherRequests.filter((r) => r.status === "pending").length > 0 && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      background: "#ef4444",
+                      color: "#ffffff",
+                      fontSize: "10px",
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {teacherRequests.filter((r) => r.status === "pending").length}
+                  </span>
+                )}
+              </button>
             </>
           ) : (
             <>
@@ -1119,7 +1647,7 @@ export default function SmartLotusApp() {
             <div className="mobile-logo"><LotusLogo compact /></div>
             <div className="page-heading">
               <span>{role === "student" ? "Không gian học tập" : role === "teacher" ? "Trung tâm giáo viên" : "Bảng điều hành"}</span>
-              <strong>{role === "student" ? navItems.find((item) => item.id === view)?.label : role === "teacher" ? teacherView === "overview" ? "Tổng quan lớp" : teacherView === "classes" ? "Lớp học" : "Bài tập" : "Quản trị hệ thống"}</strong>
+              <strong>{role === "student" ? navItems.find((item) => item.id === view)?.label : role === "teacher" ? teacherView === "overview" ? "Tổng quan lớp" : teacherView === "classes" ? "Lớp học" : teacherView === "extra_classes" ? "Lớp học thêm" : "Bài tập" : "Quản trị hệ thống"}</strong>
             </div>
           </div>
           <div className="topbar-actions">
@@ -1204,7 +1732,25 @@ export default function SmartLotusApp() {
         >
           {loading && <div className="loading-line" />}
           {role === "student" ? (
-            <StudentContent view={view} dashboard={dashboard} greetingName={greetingName} todayLabel={todayLabel} evaluation={evaluation} initialIntel={initialIntel} todayGoal={todayGoal} studyStreak={studyStreak} attemptHistory={attemptHistory} onStartQuiz={(lessonNumber, attemptMode) => void startQuiz("journey", lessonNumber, attemptMode)} onStartReview={() => void startQuiz("review")} onStartDemo={() => void startQuiz("demo")} onOpenExercises={() => setView("exercises")} onOpenCompetition={() => setView("compete")} onStartAssignment={startAssignment} />
+            <StudentContent
+              view={view}
+              dashboard={dashboard}
+              greetingName={greetingName}
+              todayLabel={todayLabel}
+              evaluation={evaluation}
+              initialIntel={initialIntel}
+              todayGoal={todayGoal}
+              studyStreak={studyStreak}
+              attemptHistory={attemptHistory}
+              onStartQuiz={(lessonNumber, attemptMode) => void startQuiz("journey", lessonNumber, attemptMode)}
+              onStartReview={() => void startQuiz("review")}
+              onStartDemo={() => void startQuiz("demo")}
+              onOpenExercises={() => setView("exercises")}
+              onOpenCompetition={() => setView("compete")}
+              onStartCompetition={() => startCompetition()}
+              onStartAssignment={startAssignment}
+              onToast={setToast}
+            />
           ) : role === "teacher" ? (
             teacherView === "overview" ? (
               <TeacherOverview
@@ -1215,6 +1761,13 @@ export default function SmartLotusApp() {
               />
             ) : teacherView === "classes" ? (
               <Classroom />
+            ) : teacherView === "extra_classes" ? (
+              <TeacherExtraClasses
+                requests={teacherRequests}
+                onRefresh={fetchTeacherRequests}
+                onOpenDetail={setSelectedRequestModal}
+                onToast={setToast}
+              />
             ) : (
               <AssignmentBuilder onBack={() => setTeacherView("overview")} onToast={setToast} />
             )
@@ -1223,6 +1776,186 @@ export default function SmartLotusApp() {
           )}
         </main>
       </div>
+      {adaptiveModalAssignment && (
+        <div className="student-modal-backdrop" onClick={() => !personalizing && setAdaptiveModalAssignment(null)}>
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(560px, 94vw)",
+              padding: "24px 26px",
+              borderRadius: "20px",
+              background: "#ffffff",
+              boxShadow: "0 25px 70px rgba(76, 29, 149, 0.22)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    background: "#ede9fe",
+                    color: "#6d28d9",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    padding: "4px 10px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  ✨ AI RAG ADAPTIVE
+                </span>
+                <strong style={{ fontSize: "16px", color: "#3b0764" }}>Đề thi cá nhân hóa cho bạn</strong>
+              </div>
+              {!personalizing && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setAdaptiveModalAssignment(null)}
+                  aria-label="Đóng"
+                >
+                  <Icon name="close" />
+                </button>
+              )}
+            </div>
+
+            <p style={{ margin: "0 0 14px", fontSize: "13px", color: "#4b5563", lineHeight: 1.5 }}>
+              Chào bé <strong>{greetingName}</strong>! Hôm nay bé muốn cùng phiêu lưu với chủ đề nào? AI sẽ tự động điều chỉnh câu hỏi vừa sức và lồng ghép hình ảnh Emoji theo chủ đề bé thích:
+            </p>
+
+            {/* Tùy chọn nguồn sinh đề */}
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "10px 14px",
+                borderRadius: "12px",
+                background: "#f0fdf4",
+                border: "1.5px solid #86efac",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "16px" }}>🎯</span>
+                <div>
+                  <strong style={{ fontSize: "11.5px", color: "#166534", display: "block" }}>
+                    Kho 38+ dạng bài tư duy thích ứng GDPT 2018 (Phản hồi tức thì)
+                  </strong>
+                  <small style={{ fontSize: "10.5px", color: "#15803d" }}>
+                    Đề toán biến hóa đa dạng theo 3 mức học lực: Cần hỗ trợ, Ổn định, Xuất sắc
+                  </small>
+                </div>
+              </div>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  cursor: "pointer",
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  color: forceAIPreference ? "#6d28d9" : "#374151",
+                  background: forceAIPreference ? "#faf5ff" : "#ffffff",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: forceAIPreference ? "1.5px solid #a855f7" : "1px solid #d1d5db",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={forceAIPreference}
+                  onChange={(e) => setForceAIPreference(e.target.checked)}
+                  style={{ accentColor: "#7c3aed", width: "15px", height: "15px" }}
+                />
+                <span>⚡ Ưu tiên AI Ollama sáng tác mới</span>
+              </label>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginBottom: "18px" }}>
+              {studentThemes.map((th) => (
+                <button
+                  key={th.id}
+                  type="button"
+                  disabled={personalizing}
+                  onClick={() => void handlePersonalizeAndStart(adaptiveModalAssignment, th.label, forceAIPreference)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "12px 14px",
+                    borderRadius: "14px",
+                    border: "1.5px solid #e9d5ff",
+                    background: "#faf5ff",
+                    cursor: personalizing ? "wait" : "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>{th.emoji}</span>
+                  <div>
+                    <strong style={{ display: "block", fontSize: "12px", color: "#581c87" }}>{th.label}</strong>
+                    <small style={{ fontSize: "10px", color: "#7e22ce" }}>{th.examples}</small>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {personalizing ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  padding: "14px",
+                  background: "#f5f3ff",
+                  borderRadius: "12px",
+                  color: "#6d28d9",
+                  fontWeight: 750,
+                  fontSize: "13px",
+                  border: "1.5px solid #ddd6fe",
+                }}
+              >
+                <Icon name="sparkles" size={18} />
+                <span>AI Lotus đang phân tích năng lực và soạn 10 câu hỏi riêng cho bé...</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    const assign = adaptiveModalAssignment;
+                    setAdaptiveModalAssignment(null);
+                    launchAssignmentQuiz(assign);
+                  }}
+                  style={{ minHeight: "38px", height: "38px", padding: "0 14px", fontSize: "12px" }}
+                >
+                  Dùng đề tiêu chuẩn
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => void handlePersonalizeAndStart(adaptiveModalAssignment, studentThemes[0].label, forceAIPreference)}
+                  style={{ minHeight: "38px", height: "38px", padding: "0 16px", fontSize: "12px" }}
+                >
+                  ✨ Bắt đầu ngay
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {selectedRequestModal && (
+        <StudentRequestModal
+          request={selectedRequestModal}
+          onClose={() => setSelectedRequestModal(null)}
+          onProcessed={() => void fetchTeacherRequests()}
+          onToast={setToast}
+        />
+      )}
       {profileEditorOpen && <ProfileEditor user={dashboard.user} onClose={() => setProfileEditorOpen(false)} onSaved={updateProfile} />}
       {toast && <div className="toast"><Icon name="check" />{toast}</div>}
     </div>
@@ -2091,13 +2824,59 @@ function OnboardingGuide({ onStart }: { onStart: () => void }) {
   );
 }
 
-function StudentContent({ view, dashboard, greetingName, todayLabel, evaluation, initialIntel, todayGoal, studyStreak, attemptHistory, onStartQuiz, onStartReview, onStartDemo, onOpenExercises, onOpenCompetition, onStartAssignment }: { view: StudentView; dashboard: DashboardData; greetingName: string; todayLabel: string; evaluation: PathEvaluation | null; initialIntel: number; todayGoal: TodayGoal; studyStreak: number; attemptHistory: AttemptSummary[]; onStartQuiz: (lessonNumber?: number, mode?: AttemptMode) => void; onStartReview: () => void; onStartDemo: () => void; onOpenExercises: () => void; onOpenCompetition: () => void; onStartAssignment: (assignment: Assignment) => void }) {
+function StudentContent({
+  view,
+  dashboard,
+  greetingName,
+  todayLabel,
+  evaluation,
+  initialIntel,
+  todayGoal,
+  studyStreak,
+  attemptHistory,
+  onStartQuiz,
+  onStartReview,
+  onStartDemo,
+  onOpenExercises,
+  onOpenCompetition,
+  onStartCompetition,
+  onStartAssignment,
+  onToast,
+}: {
+  view: StudentView;
+  dashboard: DashboardData;
+  greetingName: string;
+  todayLabel: string;
+  evaluation: PathEvaluation | null;
+  initialIntel: number;
+  todayGoal: TodayGoal;
+  studyStreak: number;
+  attemptHistory: AttemptSummary[];
+  onStartQuiz: (lessonNumber?: number, mode?: AttemptMode) => void;
+  onStartReview: () => void;
+  onStartDemo: () => void;
+  onOpenExercises: () => void;
+  onOpenCompetition: () => void;
+  onStartCompetition?: () => void;
+  onStartAssignment: (assignment: Assignment) => void;
+  onToast?: (message: string) => void;
+}) {
   const currentIntel = evaluation?.intelligenceScore ?? initialIntel;
   const journeyLocked = initialIntel < 30 && currentIntel < 50;
   if (view === "classrooms") return <StudentClassrooms onStartAssignment={onStartAssignment} />;
+  if (view === "extra_classes") return <StudentExtraClasses onToast={onToast ?? (() => { })} />;
   if (view === "exercises") return <ExerciseMapView onStartQuiz={onStartQuiz} onStartReview={onStartReview} onStartDemo={onStartDemo} initialCleared={clearedLessonsBefore(evaluation)} journeyLocked={journeyLocked} intelScore={currentIntel} lotusPoints={dashboard.user.lotusPoints} />;
   if (view === "roadmap") return <RoadmapView onStartQuiz={onStartQuiz} evaluation={evaluation} />;
-  if (view === "compete") return <CompetitionView weeklyLeaderboard={dashboard.weeklyLeaderboard} currentAvatar={dashboard.user.avatar} />;
+  if (view === "compete")
+    return (
+      <CompetitionView
+        weeklyLeaderboard={dashboard.weeklyLeaderboard}
+        currentAvatar={dashboard.user.avatar}
+        currentUserName={dashboard.user.displayName}
+        currentUserPoints={dashboard.user.lotusPoints}
+        onStartCompetition={onStartCompetition ?? onOpenCompetition}
+      />
+    );
   if (view === "achievements") return <AchievementsView dashboard={dashboard} />;
   return <StudentDashboard dashboard={dashboard} greetingName={greetingName} todayLabel={todayLabel} todayGoal={todayGoal} studyStreak={studyStreak} evaluation={evaluation} attemptHistory={attemptHistory} onStartQuiz={onStartQuiz} onOpenExercises={onOpenExercises} onOpenCompetition={onOpenCompetition} />;
 }
@@ -2478,14 +3257,185 @@ function WaterSurface() {
   return <canvas ref={canvasRef} className="water-surface-canvas" aria-hidden="true" />;
 }
 
-function CompetitionView({ weeklyLeaderboard, currentAvatar }: { weeklyLeaderboard: DashboardData["weeklyLeaderboard"]; currentAvatar: string }) {
-  const rankedStudents = weeklyLeaderboard.length ? weeklyLeaderboard : leaderboard.map((person) => ({ name: person.name, avatar: person.avatar, points: person.points, isCurrentUser: person.avatar === currentAvatar }));
+function CompetitionView({
+  weeklyLeaderboard,
+  currentAvatar,
+  currentUserName,
+  currentUserPoints,
+  onStartCompetition,
+}: {
+  weeklyLeaderboard: DashboardData["weeklyLeaderboard"];
+  currentAvatar: string;
+  currentUserName?: string;
+  currentUserPoints?: number;
+  onStartCompetition?: () => void;
+}) {
+  const [timeframe, setTimeframe] = useState<"week" | "today" | "all">("week");
+
+  const baseStudents = weeklyLeaderboard.length
+    ? weeklyLeaderboard
+    : leaderboard.map((person) => ({
+      name: person.name,
+      avatar: person.avatar,
+      points: person.points,
+      isCurrentUser: person.avatar === currentAvatar || (Boolean(currentUserName) && person.name === currentUserName),
+    }));
+
+  let rankedStudents = [...baseStudents];
+  const hasUser = rankedStudents.some(
+    (p) => p.isCurrentUser || p.avatar === currentAvatar || (Boolean(currentUserName) && p.name === currentUserName)
+  );
+
+  if (!hasUser && currentUserName) {
+    rankedStudents.push({
+      name: currentUserName,
+      avatar: currentAvatar || "VX",
+      points: Math.min(currentUserPoints ?? 2240, 3500),
+      isCurrentUser: true,
+    });
+  }
+
+  if (timeframe === "today") {
+    rankedStudents = rankedStudents.map((s) => ({
+      ...s,
+      points: Math.round(s.points * 0.35),
+    }));
+  } else if (timeframe === "all") {
+    rankedStudents = rankedStudents.map((s) => ({
+      ...s,
+      points: Math.round(s.points * 2.8),
+    }));
+  }
+
+  rankedStudents.sort((a, b) => b.points - a.points);
+
+  const userIndex = rankedStudents.findIndex(
+    (p) => p.isCurrentUser || p.avatar === currentAvatar || (Boolean(currentUserName) && p.name === currentUserName)
+  );
+  const userRank = userIndex >= 0 ? userIndex + 1 : 4;
+  const rankTier = userRank === 1 ? "Hạng Vàng" : userRank <= 5 ? "Hạng Bạc" : "Hạng Đồng";
+  const userBadge = `${rankTier} · #${userRank}`;
+
   return (
     <div className="view-stack">
-      <section className="page-intro compete-intro"><div><span className="eyebrow amber"><Icon name="trophy" size={16} /> ĐẤU TRƯỜNG TUẦN</span><h1>Đường đua Hoa Sen</h1><p>Giải bài nhanh, thu thập điểm và cùng bạn bè chinh phục đỉnh cao.</p></div><div className="league-badge">🏆<div><small>HẠNG HIỆN TẠI</small><strong>Hạng Bạc · #4</strong></div></div></section>
+      <section className="page-intro compete-intro">
+        <div>
+          <span className="eyebrow amber">
+            <Icon name="trophy" size={16} /> ĐẤU TRƯỜNG TUẦN
+          </span>
+          <h1>Đường đua Hoa Sen</h1>
+          <p>Giải bài nhanh, thu thập điểm và cùng bạn bè chinh phục đỉnh cao.</p>
+        </div>
+        <div className="league-badge">
+          🏆
+          <div>
+            <small>HẠNG HIỆN TẠI</small>
+            <strong>{userBadge}</strong>
+          </div>
+        </div>
+      </section>
       <div className="competition-grid">
-        <section className="card challenge-card"><div className="challenge-art"><LotusMascot mood="celebrate" /></div><div><span className="live-chip"><i /> ĐANG DIỄN RA</span><h2>Thử thách tốc độ</h2><p>10 câu hỏi · Cộng trừ trong phạm vi 10</p><div className="challenge-meta"><span><Icon name="clock" /> 05:00</span><span><Icon name="gem" /> Tối đa 1.750 điểm</span></div><button className="primary-button">Vào thi đấu <Icon name="arrow" /></button></div></section>
-        <section className="card league-card"><div className="card-heading"><div><span className="section-kicker">BẢNG XẾP HẠNG</span><h2>Top học sinh tuần này</h2></div><span className="ends-chip">7 ngày qua</span></div><div className="full-leaderboard">{rankedStudents.map((person, index) => <div className={`rank-row ${person.isCurrentUser ? "is-me" : ""}`} key={person.name}><span className="rank-number">{index < 3 ? ["🥇", "🥈", "🥉"][index] : index + 1}</span><span className="small-avatar" style={{ background: ["#f59e0b", "#14b8a6", "#3b82f6", "#8b5cf6"][index % 4] }}>{person.avatar}</span><div><strong>{person.name}{person.isCurrentUser && <em>Bạn</em>}</strong><small>{person.points.toLocaleString("vi-VN")} điểm trong tuần</small></div><b>{person.points.toLocaleString("vi-VN")} <Icon name="gem" size={13} /></b></div>)}</div></section>
+        <section className="card challenge-card">
+          <div className="challenge-art">
+            <LotusMascot mood="celebrate" />
+          </div>
+          <div>
+            <span className="live-chip">
+              <i /> ĐANG DIỄN RA
+            </span>
+            <h2>Thử thách tốc độ</h2>
+            <p>10 câu hỏi · Cộng trừ trong phạm vi 10</p>
+            <div className="challenge-meta">
+              <span>
+                <Icon name="clock" /> 05:00
+              </span>
+              <span>
+                <Icon name="gem" /> Tối đa 1.750 điểm
+              </span>
+            </div>
+            <button
+              className="primary-button"
+              onClick={onStartCompetition}
+              style={{ cursor: "pointer" }}
+            >
+              Vào thi đấu <Icon name="arrow" />
+            </button>
+          </div>
+        </section>
+        <section className="card league-card">
+          <div className="card-heading">
+            <div>
+              <span className="section-kicker">BẢNG XẾP HẠNG</span>
+              <h2>Top học sinh tuần này</h2>
+            </div>
+            <div style={{ display: "flex", gap: "6px" }}>
+              {(
+                [
+                  { id: "week", label: "7 ngày qua" },
+                  { id: "today", label: "Hôm nay" },
+                  { id: "all", label: "Toàn thời gian" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setTimeframe(tab.id)}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "7px",
+                    border: "none",
+                    background: timeframe === tab.id ? "#fff5e7" : "transparent",
+                    color: timeframe === tab.id ? "#d47720" : "#8e8697",
+                    fontSize: "8px",
+                    fontWeight: timeframe === tab.id ? 700 : 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="full-leaderboard">
+            {rankedStudents.map((person, index) => {
+              const isMe =
+                person.isCurrentUser ||
+                person.avatar === currentAvatar ||
+                (Boolean(currentUserName) && person.name === currentUserName);
+              return (
+                <div className={`rank-row ${isMe ? "is-me" : ""}`} key={`${person.name}-${index}`}>
+                  <span className="rank-number">
+                    {index < 3 ? ["🥇", "🥈", "🥉"][index] : index + 1}
+                  </span>
+                  <span
+                    className="small-avatar"
+                    style={{
+                      background: ["#f59e0b", "#14b8a6", "#3b82f6", "#8b5cf6"][index % 4],
+                    }}
+                  >
+                    {person.avatar}
+                  </span>
+                  <div>
+                    <strong>
+                      {person.name}
+                      {isMe && <em>Bạn</em>}
+                    </strong>
+                    <small>
+                      {person.points.toLocaleString("vi-VN")} điểm{" "}
+                      {timeframe === "today"
+                        ? "hôm nay"
+                        : timeframe === "all"
+                          ? "tổng cộng"
+                          : "trong tuần"}
+                    </small>
+                  </div>
+                  <b>
+                    {person.points.toLocaleString("vi-VN")} <Icon name="gem" size={13} />
+                  </b>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -3307,7 +4257,23 @@ function ServiceStatus({ icon, name, detail, standby = false }: { icon: IconName
   return <div><span><Icon name={icon} /></span><div><strong>{name}</strong><small>{detail}</small></div><em className={standby ? "standby" : ""}>{standby ? "Chờ API" : "Online"}</em></div>;
 }
 
-function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo = false, isAssignment = false }: { quizQuestions: QuizQuestion[]; onExit: () => void; onComplete: (result: QuizResult) => void; onInteract: () => void; isDemo?: boolean; isAssignment?: boolean }) {
+function QuizExperience({
+  quizQuestions,
+  onExit,
+  onComplete,
+  onInteract,
+  isDemo = false,
+  isAssignment = false,
+  isCompetition = false,
+}: {
+  quizQuestions: QuizQuestion[];
+  onExit: () => void;
+  onComplete: (result: QuizResult) => void;
+  onInteract: () => void;
+  isDemo?: boolean;
+  isAssignment?: boolean;
+  isCompetition?: boolean;
+}) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
@@ -3316,6 +4282,7 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   const [normalCorrect, setNormalCorrect] = useState(0);
   const [hardCorrect, setHardCorrect] = useState(0);
   const [seconds, setSeconds] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(300);
   const [challengeStartedAt, setChallengeStartedAt] = useState<number | null>(null);
   const [answers, setAnswers] = useState<AttemptPayload["answers"]>([]);
   const [lastCorrect, setLastCorrect] = useState(false);
@@ -3341,9 +4308,32 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   const inputState: "idle" | "correct" | "wrong" = selected === null ? "idle" : lastCorrect ? "correct" : "wrong";
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    const timer = window.setInterval(() => {
+      setSeconds((value) => value + 1);
+      if (isCompetition) {
+        setSecondsLeft((value) => Math.max(0, value - 1));
+      }
+    }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isCompetition]);
+
+  useEffect(() => {
+    if (isCompetition && secondsLeft === 0) {
+      const compBase = correct * 150;
+      onComplete({
+        score: compBase,
+        baseScore: compBase,
+        bonus: 0,
+        correct,
+        normalCorrect,
+        hardCorrect,
+        duration: 300,
+        challengeDuration: 300,
+        total: quizQuestions.length,
+        answers,
+      });
+    }
+  }, [secondsLeft, isCompetition]);
 
   function toggleTheme() {
     setTheme((current) => {
@@ -3360,7 +4350,7 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   function recordAnswer(answerText: string, isCorrect: boolean) {
     if (selected !== null) return;
     onInteract();
-    const earned = calculateQuestionScore(question, isCorrect);
+    const earned = isCompetition ? (isCorrect ? 150 : 0) : calculateQuestionScore(question, isCorrect);
     setSelected(answerText);
     setLastCorrect(isCorrect);
     setScore((value) => value + earned);
@@ -3423,7 +4413,25 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   function nextQuestion() {
     if (selected === null) return;
     if (index === quizQuestions.length - 1) {
-      // Số câu đúng đã được cộng ngay khi chọn đáp án ở recordAnswer.
+      if (isCompetition) {
+        const compBase = correct * 150;
+        const elapsed = Math.max(1, seconds);
+        const timeBonus = correct > 0 ? Math.max(0, Math.round((250 * Math.max(0, 300 - elapsed)) / 300)) : 0;
+        const totalCompScore = Math.min(1750, compBase + timeBonus);
+        onComplete({
+          score: totalCompScore,
+          baseScore: compBase,
+          bonus: timeBonus,
+          correct,
+          normalCorrect,
+          hardCorrect,
+          duration: elapsed,
+          challengeDuration: elapsed,
+          total: quizQuestions.length,
+          answers,
+        });
+        return;
+      }
       const challengeDuration = challengeStartedAt === null ? 0 : Math.max(0, seconds - challengeStartedAt);
       const finalScore = calculateQuizScore(normalCorrect, hardCorrect, challengeDuration);
       onComplete({
@@ -3474,18 +4482,45 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
           {theme === "dark" ? <Icon name="sun" size={18} /> : <Icon name="moon" size={17} />}
         </button>
         <div className="tt-stats">
-          <span className="tt-stat"><Icon name="clock" size={14} /> {formatDuration(seconds)}</span>
-          <span className="tt-stat tt-stat-gold"><Icon name="gem" size={14} /> {score.toLocaleString("vi-VN")}</span>
+          {isCompetition ? (
+            <span
+              className="tt-stat"
+              style={{
+                color: secondsLeft <= 60 ? "#ef4444" : undefined,
+                fontWeight: 700,
+              }}
+              title="Thời gian còn lại"
+            >
+              <Icon name="clock" size={14} /> {formatDuration(secondsLeft)}
+            </span>
+          ) : (
+            <span className="tt-stat">
+              <Icon name="clock" size={14} /> {formatDuration(seconds)}
+            </span>
+          )}
+          <span className="tt-stat tt-stat-gold">
+            <Icon name="gem" size={14} /> {score.toLocaleString("vi-VN")}
+            {isCompetition && <small style={{ opacity: 0.8, fontSize: 10 }}> / 1.750</small>}
+          </span>
         </div>
       </div>
 
       <div className="tt-stage">
         <div key={index} className="tt-question">
           <div className="tt-chips">
-            <span className={`tt-phase-chip ${question.phase}`}>
-              <Icon name={question.phase === "normal" ? "book" : "flame"} size={14} />
-              {question.phase === "normal" ? "Vòng Khởi động" : "Vòng Thử thách"}
-            </span>
+            {isCompetition ? (
+              <span
+                className="tt-phase-chip challenge"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", color: "#fff" }}
+              >
+                <Icon name="trophy" size={14} /> Đấu trường tuần
+              </span>
+            ) : (
+              <span className={`tt-phase-chip ${question.phase}`}>
+                <Icon name={question.phase === "normal" ? "book" : "flame"} size={14} />
+                {question.phase === "normal" ? "Vòng Khởi động" : "Vòng Thử thách"}
+              </span>
+            )}
             <span className="tt-mode-chip">{MODE_LABELS[mode]}</span>
             <span className="tt-diff-chip" style={{ color: meta.color }}>
               {"★".repeat(meta.stars)} Level {question.difficulty} · {meta.name}
@@ -3608,7 +4643,33 @@ function QuizExperience({ quizQuestions, onExit, onComplete, onInteract, isDemo 
   );
 }
 
-function ResultScreen({ result, journeyFailed, skipEligible, onSkip, onHome, onRetry, onPrevious, onNext, nextLocked }: { result: QuizResult; journeyFailed: boolean; skipEligible: boolean; onSkip: () => void; onHome: () => void; onRetry: () => void; onPrevious: () => void; onNext: () => void; nextLocked: boolean }) {
+function ResultScreen({
+  result,
+  journeyFailed,
+  skipEligible,
+  onSkip,
+  onHome,
+  onRetry,
+  onPrevious,
+  onNext,
+  nextLocked,
+  isCompetition = false,
+  userRank,
+  greetingName,
+}: {
+  result: QuizResult;
+  journeyFailed: boolean;
+  skipEligible: boolean;
+  onSkip: () => void;
+  onHome: () => void;
+  onRetry: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  nextLocked: boolean;
+  isCompetition?: boolean;
+  userRank?: number;
+  greetingName?: string;
+}) {
   const total = result.total || 10;
   const normalTotal = Math.ceil(total / 2);
   const challengeTotal = total - normalTotal;
@@ -3618,29 +4679,151 @@ function ResultScreen({ result, journeyFailed, skipEligible, onSkip, onHome, onR
   const bonusMessage = result.bonus > 0
     ? `Bạn nhận được +${result.bonus} điểm bonus vì hoàn thành phần khó trong ${formatDuration(result.challengeDuration)}.`
     : "Bạn đã vượt quá 3 phút ở phần khó nên không nhận được điểm bonus thời gian.";
+
   return (
     <main className="result-shell">
-      <header className="result-header"><LotusLogo /><span><Icon name="check" /> Bài học đã hoàn thành</span></header>
+      <header className="result-header">
+        <LotusLogo />
+        <span>
+          <Icon name={isCompetition ? "trophy" : "check"} /> {isCompetition ? "Đấu trường tuần: Thử thách tốc độ" : "Bài học đã hoàn thành"}
+        </span>
+      </header>
       <section className="result-card">
-        <div className="result-hero"><div className="result-mascot"><LotusMascot mood="celebrate" /></div><span className="eyebrow purple">KẾT QUẢ BÀI HỌC</span><h1>{passed ? "Tuyệt vời, Minh Anh!" : "Bạn đã rất cố gắng!"}</h1><p>{passed ? `Bạn đã hoàn thành đủ ${total} câu và vượt qua điều kiện của bài học.` : "Bạn đã hoàn thành bài. Hãy xem lại phần giải thích và thử thêm một lần nữa nhé!"}</p></div>
-        {journeyFailed && (
+        <div className="result-hero">
+          <div className="result-mascot"><LotusMascot mood="celebrate" /></div>
+          <span className={`eyebrow ${isCompetition ? "amber" : "purple"}`}>
+            {isCompetition ? <><Icon name="trophy" size={14} /> ĐƯỜNG ĐUA HOA SEN</> : "KẾT QUẢ BÀI HỌC"}
+          </span>
+          <h1>
+            {isCompetition
+              ? (passed ? `Xuất sắc, ${greetingName || "bạn ơi"}!` : "Nỗ lực tuyệt vời!")
+              : (passed ? `Tuyệt vời, ${greetingName || "Minh Anh"}!` : "Bạn đã rất cố gắng!")}
+          </h1>
+          <p>
+            {isCompetition
+              ? `Bạn đã hoàn thành ${total} câu hỏi trong thời gian ${formatDuration(result.duration)} (giới hạn 05:00) và giành được ${result.score.toLocaleString("vi-VN")} điểm sen!`
+              : (passed ? `Bạn đã hoàn thành đủ ${total} câu và vượt qua điều kiện của bài học.` : "Bạn đã hoàn thành bài. Hãy xem lại phần giải thích và thử thêm một lần nữa nhé!")}
+          </p>
+        </div>
+
+        {isCompetition && (
+          <div className="result-rewards" style={{ borderColor: "#c7b3f5", background: "#f5f0ff", marginBottom: 16 }}>
+            <span>🏆</span>
+            <div>
+              <small>BẢNG XẾP HẠNG TUẦN</small>
+              <strong>Thành tích đã được cộng trực tiếp vào Đường đua Hoa Sen!</strong>
+              <p>Hạng hiện tại của bạn: #{userRank ?? 4}. Điểm sen được tích lũy vào tài khoản.</p>
+            </div>
+          </div>
+        )}
+
+        {!isCompetition && journeyFailed && (
           <div className="result-rewards" style={{ borderColor: "#f3c6dc", background: "#fff5fa", marginBottom: 16 }}>
             <span>⚠️</span>
             <div><small>HÀNH TRÌNH ẾCH XANH</small><strong>Không đủ điều kiện vượt bài (dưới 50%)</strong><p>Chỉ số thông minh của bạn bị trừ 5 điểm. Hãy vào Ôn tập để lấy lại điểm và quay lại hành trình nhé!</p></div>
           </div>
         )}
-        {skipEligible && (
+
+        {!isCompetition && skipEligible && (
           <div className="result-rewards" style={{ borderColor: "#c7b3f5", background: "#f5f0ff", marginBottom: 16 }}>
             <span>🐸</span>
             <div><small>PHẦN THƯỞNG XUẤT SẮC</small><strong>Trên 90% và chỉ số thông minh trên 90</strong><p>Bạn được quyền nhảy qua 2 lá sen — bỏ qua 1 bài trong hành trình ếch xanh!</p></div>
             <button className="primary-button" onClick={onSkip}>Nhảy qua 2 lá sen <Icon name="arrow" /></button>
           </div>
         )}
-        <div className="result-score-panel"><div className="result-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}><div><strong>{result.correct}/{total}</strong><span>Câu chính xác</span></div></div><div className="result-metrics"><div><span className="metric-icon purple"><Icon name="gem" /></span><p><small>TỔNG ĐIỂM</small><strong>{result.score.toLocaleString("vi-VN")}</strong></p></div><div><span className="metric-icon green"><Icon name="target" /></span><p><small>ĐỘ CHÍNH XÁC</small><strong>{accuracy}%</strong></p></div><div><span className="metric-icon orange"><Icon name="clock" /></span><p><small>THỜI GIAN</small><strong>{formatDuration(result.duration)}</strong></p></div></div></div>
-        <div className="result-breakdown"><div><span className="round-icon easy"><Icon name="book" /></span><p><strong>{normalTotal} câu thường · 60%</strong><small>{result.normalCorrect}/{normalTotal} đúng · {result.normalCorrect * 120} điểm</small></p><b>{result.normalCorrect * 120}/{normalTotal * 120} <Icon name="check" /></b></div><div><span className="round-icon hard"><Icon name="flame" /></span><p><strong>{challengeTotal} câu khó · 40%</strong><small>{result.hardCorrect}/{challengeTotal} đúng · {result.hardCorrect * 80} điểm</small></p><b>{result.hardCorrect * 80}/{challengeTotal * 80} <Icon name="check" /></b></div></div>
-        <div className="result-rewards"><span>🌸</span><div><small>CHI TIẾT ĐIỂM</small><strong>Điểm nền {result.baseScore} + bonus {result.bonus}</strong><p>{bonusMessage}</p></div><i /><span>🔥</span><div><small>CHUỖI HỌC TẬP</small><strong>5 ngày liên tục</strong></div></div>
-        <div className="result-next-steps"><div className="result-next-steps-heading"><div><span className="section-kicker">BƯỚC TIẾP THEO</span><h2>Chọn bài học phù hợp</h2></div><span>{nextLocked ? "Cần ôn lại trước khi học bài mới" : recommendation === "retry" ? "Nên củng cố bài này" : recommendation === "previous" ? "Nên ôn lại nền tảng" : "Bạn đã sẵn sàng tiến lên"}</span></div><div className="result-choice-grid"><button className={`result-choice ${recommendation === "previous" ? "recommended" : ""}`} onClick={onPrevious}><span className="result-choice-icon"><Icon name="arrow" className="rotate-left" /></span><span><strong>Bài trước đó</strong><small>Đếm và so sánh số</small></span>{recommendation === "previous" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "retry" ? "recommended" : ""}`} onClick={onRetry}><span className="result-choice-icon"><Icon name="sparkles" /></span><span><strong>Làm lại bài này</strong><small>Củng cố kiến thức vừa học</small></span>{recommendation === "retry" && <em>Nên chọn</em>}</button><button className={`result-choice ${recommendation === "next" ? "recommended" : ""}`} onClick={onNext} disabled={nextLocked}><span className="result-choice-icon"><Icon name="arrow" /></span><span><strong>{nextLocked ? "Ôn lại trước" : "Bài tiếp theo"}</strong><small>{nextLocked ? "Đã dưới 50 điểm quá 3 lần" : "Trừ trong phạm vi 10"}</small></span>{!nextLocked && recommendation === "next" && <em>Nên chọn</em>}</button></div></div>
-        <div className="result-actions"><button className="secondary-button" onClick={onHome}>Về trang chủ</button></div>
+
+        <div className="result-score-panel">
+          <div className="result-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}>
+            <div><strong>{result.correct}/{total}</strong><span>Câu chính xác</span></div>
+          </div>
+          <div className="result-metrics">
+            <div>
+              <span className="metric-icon purple"><Icon name="gem" /></span>
+              <p><small>TỔNG ĐIỂM</small><strong>{result.score.toLocaleString("vi-VN")}{isCompetition ? " / 1.750" : ""}</strong></p>
+            </div>
+            <div>
+              <span className="metric-icon green"><Icon name="target" /></span>
+              <p><small>ĐỘ CHÍNH XÁC</small><strong>{accuracy}%</strong></p>
+            </div>
+            <div>
+              <span className="metric-icon orange"><Icon name="clock" /></span>
+              <p><small>THỜI GIAN</small><strong>{formatDuration(result.duration)}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        {isCompetition ? (
+          <div className="result-breakdown">
+            <div>
+              <span className="round-icon easy"><Icon name="book" /></span>
+              <p><strong>Điểm câu hỏi chính xác</strong><small>{result.correct}/{total} câu đúng · 150 điểm/câu</small></p>
+              <b>{result.baseScore} điểm <Icon name="check" /></b>
+            </div>
+            <div>
+              <span className="round-icon hard"><Icon name="flame" /></span>
+              <p><strong>Thưởng tốc độ</strong><small>{Math.max(0, 300 - result.duration)} giây còn lại</small></p>
+              <b>+{result.bonus} điểm <Icon name="check" /></b>
+            </div>
+          </div>
+        ) : (
+          <div className="result-breakdown">
+            <div>
+              <span className="round-icon easy"><Icon name="book" /></span>
+              <p><strong>{normalTotal} câu thường · 60%</strong><small>{result.normalCorrect}/{normalTotal} đúng · {result.normalCorrect * 120} điểm</small></p>
+              <b>{result.normalCorrect * 120}/{normalTotal * 120} <Icon name="check" /></b>
+            </div>
+            <div>
+              <span className="round-icon hard"><Icon name="flame" /></span>
+              <p><strong>{challengeTotal} câu khó · 40%</strong><small>{result.hardCorrect}/{challengeTotal} đúng · {result.hardCorrect * 80} điểm</small></p>
+              <b>{result.hardCorrect * 80}/{challengeTotal * 80} <Icon name="check" /></b>
+            </div>
+          </div>
+        )}
+
+        {!isCompetition && (
+          <div className="result-rewards">
+            <span>🌸</span>
+            <div><small>CHI TIẾT ĐIỂM</small><strong>Điểm nền {result.baseScore} + bonus {result.bonus}</strong><p>{bonusMessage}</p></div>
+            <i />
+            <span>🔥</span>
+            <div><small>CHUỖI HỌC TẬP</small><strong>5 ngày liên tục</strong></div>
+          </div>
+        )}
+
+        {isCompetition ? (
+          <div className="result-actions" style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap", marginTop: "24px" }}>
+            <button className="primary-button" onClick={onHome}><Icon name="trophy" /> Xem Bảng xếp hạng</button>
+            <button className="secondary-button" onClick={onRetry}><Icon name="play" /> Thi đấu lại</button>
+            <button className="secondary-button" onClick={onHome}><Icon name="home" /> Về trang chủ</button>
+          </div>
+        ) : (
+          <>
+            <div className="result-next-steps">
+              <div className="result-next-steps-heading">
+                <div><span className="section-kicker">BƯỚC TIẾP THEO</span><h2>Chọn bài học phù hợp</h2></div>
+                <span>{nextLocked ? "Cần ôn lại trước khi học bài mới" : recommendation === "retry" ? "Nên củng cố bài này" : recommendation === "previous" ? "Nên ôn lại nền tảng" : "Bạn đã sẵn sàng tiến lên"}</span>
+              </div>
+              <div className="result-choice-grid">
+                <button className={`result-choice ${recommendation === "previous" ? "recommended" : ""}`} onClick={onPrevious}>
+                  <span className="result-choice-icon"><Icon name="arrow" className="rotate-left" /></span>
+                  <span><strong>Bài trước đó</strong><small>Đếm và so sánh số</small></span>
+                  {recommendation === "previous" && <em>Nên chọn</em>}
+                </button>
+                <button className={`result-choice ${recommendation === "retry" ? "recommended" : ""}`} onClick={onRetry}>
+                  <span className="result-choice-icon"><Icon name="sparkles" /></span>
+                  <span><strong>Làm lại bài này</strong><small>Củng cố kiến thức vừa học</small></span>
+                  {recommendation === "retry" && <em>Nên chọn</em>}
+                </button>
+                <button className={`result-choice ${recommendation === "next" ? "recommended" : ""}`} onClick={onNext} disabled={nextLocked}>
+                  <span className="result-choice-icon"><Icon name="arrow" /></span>
+                  <span><strong>{nextLocked ? "Ôn lại trước" : "Bài tiếp theo"}</strong><small>{nextLocked ? "Đã dưới 50 điểm quá 3 lần" : "Trừ trong phạm vi 10"}</small></span>
+                  {!nextLocked && recommendation === "next" && <em>Nên chọn</em>}
+                </button>
+              </div>
+            </div>
+            <div className="result-actions"><button className="secondary-button" onClick={onHome}>Về trang chủ</button></div>
+          </>
+        )}
       </section>
     </main>
   );

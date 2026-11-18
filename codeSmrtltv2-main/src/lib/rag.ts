@@ -2,7 +2,7 @@ import "server-only";
 
 import sampleQuestions from "@/data/sample-questions.json";
 import rawRagBank from "@/data/rag-question-bank.json";
-import type { Difficulty, QuizPhase, QuizQuestion } from "./learning-data";
+import { finalizeQuizSequence, type Difficulty, type QuizQuestion } from "./learning-data";
 
 export type SampleQuestion = {
   deck: number;
@@ -458,21 +458,27 @@ export function synthesizePersonalizedQuestions(
 
   const generated: QuizQuestion[] = [];
   const count = Math.max(1, input.count ?? templates.length);
+  const usedPrompts = new Set<string>((input.excludePrompts ?? []).map((p) => p.trim().toLowerCase()));
+  const poolTemplates = templates.length >= count
+    ? templates
+    : [
+        ...templates,
+        ...ragBank.filter(
+          (q) => !templates.some((t) => t.prompt === q.prompt) && targetDiffs.includes(q.difficulty),
+        ),
+        ...ragBank.filter((q) => !templates.some((t) => t.prompt === q.prompt)),
+      ];
 
   for (let i = 0; i < count; i += 1) {
-    const tpl = templates[i % templates.length];
+    const tpl = poolTemplates[i % poolTemplates.length];
     const questionId = i + 1;
     const isChallenge = i >= Math.ceil(count / 2);
-    const assignedDiff: Difficulty = isChallenge
-      ? targetDiffs[targetDiffs.length - 1] ?? "C"
-      : targetDiffs[0] ?? "A";
 
     // Phân loại mẫu câu hỏi để tạo biến thể cá nhân hoá theo chỉ số thông minh
     const p = tpl.prompt.toLowerCase();
 
     // 1. Dạng Số liền trước / số liền sau
     if (p.includes("liền trước") && p.includes("liền sau")) {
-      // Điều chỉnh dải số theo IQ
       const baseNum = intelligence >= 75
         ? randIntSeeded(rng, 40, 89)
         : intelligence >= 45
@@ -482,7 +488,6 @@ export function synthesizePersonalizedQuestions(
       const nextNum = baseNum + 1;
 
       if (profile.distractorTrapRequired) {
-        // Cài bẫy thứ tự hỏi để rèn tính cẩn thận cho học sinh làm nhanh ẩu
         const correct = `${nextNum} và ${prevNum}`;
         const wrong = [
           `${prevNum} và ${nextNum}`,
@@ -492,7 +497,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "C",
           skill: "Số liền sau - liền trước (rèn đọc kỹ)",
           prompt: `Số liền sau và số liền trước của số ${baseNum} lần lượt là:`,
           options: makeOptionsArray(correct, wrong),
@@ -509,7 +514,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: baseNum > 20 ? "B" : "A",
           skill: "Số liền trước - liền sau",
           prompt: `Số liền trước và số liền sau của số ${baseNum} là:`,
           options: makeOptionsArray(correct, wrong),
@@ -526,7 +531,6 @@ export function synthesizePersonalizedQuestions(
       const baseRange = intelligence >= 70 ? [30, 99] : [10, 50];
       const numbers: number[] = [];
       if (profile.distractorTrapRequired) {
-        // Cài bẫy chữ số đảo ngược như 37 và 73 để thử thách học sinh đọc lướt
         const tens = randIntSeeded(rng, 2, 7);
         const units = randIntSeeded(rng, tens + 1, 9);
         numbers.push(tens * 10 + units, units * 10 + tens);
@@ -541,7 +545,7 @@ export function synthesizePersonalizedQuestions(
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: profile.distractorTrapRequired ? "C" : (baseRange[1] > 50 ? "B" : "A"),
         skill: isMin ? "Tìm số bé nhất" : "Tìm số lớn nhất",
         prompt: `Tìm số ${isMin ? "bé nhất" : "lớn nhất"} trong các số sau: ${numbers.join("; ")}`,
         options: makeOptionsArray(correct, wrong),
@@ -572,7 +576,7 @@ export function synthesizePersonalizedQuestions(
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: numCount >= 5 ? "C" : "B",
         skill: "Sắp xếp dãy số theo thứ tự",
         prompt: `Các số ${numList.join("; ")} viết theo thứ tự ${isAsc ? "từ bé đến lớn" : "từ lớn đến bé"} là:`,
         options: makeOptionsArray(correctStr, [wrong1, wrong2, wrong3]),
@@ -596,7 +600,7 @@ export function synthesizePersonalizedQuestions(
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: midVal >= 25 ? "E" : "D",
         skill: "Bất đẳng thức kép tìm số ở giữa",
         prompt: `Điền số thích hợp vào chỗ chấm: ${a1} – ${a2} > ... > ${b1} – ${b2}`,
         options: makeOptionsArray(correct, wrong),
@@ -606,30 +610,33 @@ export function synthesizePersonalizedQuestions(
       continue;
     }
 
-    // 5. Dạng Lịch và ngày trong tuần
-    if (p.includes("thứ") && (p.includes("hôm qua") || p.includes("ngày mai") || p.includes("tuần"))) {
+    // 5. Dạng Lịch và ngày trong tuần (không ghi đè câu tính ngày ngược "tuần liền trước")
+    if (
+      p.includes("thứ") &&
+      !p.includes("tuần liền trước") &&
+      (p.includes("hôm qua") || p.includes("ngày mai") || p.includes("của một tuần"))
+    ) {
       const days = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ Nhật"];
       const dIdx = randIntSeeded(rng, 0, 6);
       const todayDay = randIntSeeded(rng, 8, 22);
 
       if (intelligence >= 70) {
-        // Tuần sau hoặc tuần trước
         const targetWeekday = days[(dIdx + 1) % 7];
         const nextWeekDate = todayDay + 7 + 1;
         const correct = String(nextWeekDate);
         const wrong = [String(nextWeekDate - 1), String(nextWeekDate + 1), String(nextWeekDate - 2)];
+        const startDayLabel = days[dIdx].charAt(0).toUpperCase() + days[dIdx].slice(1);
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "D",
           skill: "Tính ngày trong tuần kế tiếp",
-          prompt: `${days[dIdx]} của một tuần là ngày ${todayDay} trong tháng. Hỏi ${targetWeekday} của tuần liền sau là ngày nào trong tháng?`,
+          prompt: `${startDayLabel} của một tuần là ngày ${todayDay} trong tháng. Hỏi ${targetWeekday} của tuần liền sau là ngày nào trong tháng?`,
           options: makeOptionsArray(correct, wrong),
           correctAnswer: correct,
-          explanation: `${days[dIdx]} tuần liền sau là ngày ${todayDay + 7}. Kế tiếp là ${targetWeekday} nên là ngày ${nextWeekDate}.`,
+          explanation: `${startDayLabel} tuần liền sau là ngày ${todayDay + 7}. Kế tiếp là ${targetWeekday} nên là ngày ${nextWeekDate}.`,
         });
       } else {
-        // Hôm qua / ngày mai đơn giản
         const isYesterday = rng() > 0.5;
         const targetD = isYesterday ? (dIdx + 6) % 7 : (dIdx + 1) % 7;
         const targetDate = isYesterday ? todayDay - 1 : todayDay + 1;
@@ -642,7 +649,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "B",
           skill: "Xác định thứ ngày trong tuần",
           prompt: `Hôm nay là ${days[dIdx]} ngày ${todayDay}. Hỏi ${isYesterday ? "hôm qua" : "ngày mai"} là thứ mấy ngày mấy?`,
           options: makeOptionsArray(correct, wrong),
@@ -656,7 +663,6 @@ export function synthesizePersonalizedQuestions(
     // 6. Dạng Tìm số còn thiếu trong phép tính (... - a = b hoặc a + b + ... = c)
     if (p.includes("...") || p.includes("– 32 =") || p.includes("+ ... =") || p.includes("... –") || p.includes("... +")) {
       if (intelligence >= 65) {
-        // Ba số hạng: a + b + ... = c
         const x1 = randIntSeeded(rng, 10, 40);
         const x2 = randIntSeeded(rng, 10, 30);
         const missing = randIntSeeded(rng, 5, 25);
@@ -666,7 +672,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "D",
           skill: "Tìm số hạng còn thiếu trong tổng ba số",
           prompt: `Điền số thích hợp vào chỗ chấm: ${x1} + ${x2} + ... = ${total}`,
           options: makeOptionsArray(correct, wrong),
@@ -674,7 +680,6 @@ export function synthesizePersonalizedQuestions(
           explanation: `Ta có ${x1} + ${x2} = ${x1 + x2}. Số cần điền là: ${total} - ${x1 + x2} = ${missing}.`,
         });
       } else {
-        // Tìm số bị trừ: ... - a = b
         const subVal = randIntSeeded(rng, 12, 45);
         const diffVal = randIntSeeded(rng, 10, 40);
         const targetVal = subVal + diffVal;
@@ -683,7 +688,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "C",
           skill: "Tìm số bị trừ chưa biết",
           prompt: `Điền số thích hợp vào chỗ chấm: ... – ${subVal} = ${diffVal}`,
           options: makeOptionsArray(correct, wrong),
@@ -706,7 +711,7 @@ export function synthesizePersonalizedQuestions(
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: "C",
         skill: "So sánh giá trị biểu thức",
         prompt: `Điền dấu >, <, = thích hợp vào chỗ chấm: ${a} + ${b} ... ${c} + ${d}`,
         options: [">", "<", "=", "Đáp án khác"],
@@ -716,13 +721,27 @@ export function synthesizePersonalizedQuestions(
       continue;
     }
 
-    // 8. Dạng Toán có lời văn (Đa dạng hóa theo phong cách học tập và nhịp độ)
-    if (p.includes("hỏi") || p.includes("bán") || p.includes("cho") || p.includes("mua") || p.includes("học sinh")) {
+    // 8. Dạng Toán có lời văn cho - bớt - bán (không ghi đè các dạng đặc thù như tuổi, bắc cầu, lập số, hình học, xe buýt...)
+    const isSpecialProblem =
+      p.includes("tuổi") ||
+      p.includes("ít hơn") ||
+      p.includes("nhiều hơn") ||
+      p.includes("bằng nhau") ||
+      p.includes("hình") ||
+      p.includes("tam giác") ||
+      p.includes("chữ số") ||
+      p.includes("sải tay") ||
+      p.includes("cân") ||
+      p.includes("chỗ ngồi") ||
+      p.includes("xe buýt") ||
+      p.includes("đôi đũa") ||
+      p.includes("giờ") ||
+      p.includes("cm");
+    if (!isSpecialProblem && (p.includes("còn lại") || p.includes("bán") || p.includes("cho thêm") || p.includes("tặng"))) {
       const sName = studentNames[randIntSeeded(rng, 0, studentNames.length - 1)];
       const item = itemNames[randIntSeeded(rng, 0, itemNames.length - 1)];
 
       if (profile.distractorTrapRequired) {
-        // Cài bẫy dữ kiện thừa cho học sinh làm nhanh nhưng ẩu
         const initial = randIntSeeded(rng, 25, 55);
         const sub = randIntSeeded(rng, 5, 18);
         const extraItem = itemNames[(itemNames.indexOf(item) + 1) % itemNames.length];
@@ -737,7 +756,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "D",
           skill: "Toán có lời văn bẫy dữ kiện thừa",
           prompt: `Bạn ${sName} có ${initial} ${item.name} và ${extraCount} ${extraItem.name}. ${sName} tặng em ${sub} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
           options: makeOptionsArray(correct, wrong),
@@ -745,7 +764,6 @@ export function synthesizePersonalizedQuestions(
           explanation: `Đọc kỹ đề bài: câu hỏi chỉ hỏi số ${item.name} còn lại nên số ${extraCount} ${extraItem.name} là thông tin thừa. Ta có: ${initial} - ${sub} = ${remain} (${item.unit}).`,
         });
       } else if (profile.simplifiedWordingRequired) {
-        // Đề bài rút gọn trực diện cho học sinh chậm / quá tải nhận thức
         const initial = randIntSeeded(rng, 10, 20);
         const sub = randIntSeeded(rng, 2, 7);
         const remain = initial - sub;
@@ -754,7 +772,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "B",
           skill: "Toán có lời văn cơ bản",
           prompt: `Bạn ${sName} có ${initial} ${item.name}, ${sName} cho bạn ${sub} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
           options: makeOptionsArray(correct, wrong),
@@ -762,7 +780,6 @@ export function synthesizePersonalizedQuestions(
           explanation: `Số ${item.name} còn lại là: ${initial} - ${sub} = ${remain} (${item.unit}).`,
         });
       } else if (profile.twoStepProblemRequired || intelligence >= 65) {
-        // Toán lời văn 2 bước tính (nâng cao cho học sinh bứt phá / giỏi)
         const initial = randIntSeeded(rng, 25, 60);
         const part1 = randIntSeeded(rng, 5, 15);
         const part2 = randIntSeeded(rng, 3, 10);
@@ -772,7 +789,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: "D",
           skill: "Toán có lời văn hai bước tính",
           prompt: `Bạn ${sName} có ${initial} ${item.name}. ${sName} tặng em ${part1} ${item.unit}, sau đó tặng bạn ${part2} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
           options: makeOptionsArray(correct, wrong),
@@ -780,7 +797,6 @@ export function synthesizePersonalizedQuestions(
           explanation: `Sau lần tặng thứ nhất ${sName} còn: ${initial} - ${part1} = ${initial - part1} (${item.unit}). Sau lần tặng thứ hai còn: ${initial - part1} - ${part2} = ${remain} (${item.unit}).`,
         });
       } else {
-        // Toán lời văn 1 bước tính (cơ bản / trung bình)
         const initial = randIntSeeded(rng, 12, 35);
         const sub = randIntSeeded(rng, 3, initial - 2);
         const remain = initial - sub;
@@ -789,7 +805,7 @@ export function synthesizePersonalizedQuestions(
         generated.push({
           id: questionId,
           phase: isChallenge ? "challenge" : "normal",
-          difficulty: assignedDiff,
+          difficulty: initial > 20 ? "C" : "B",
           skill: "Toán có lời văn phép trừ",
           prompt: `Bạn ${sName} có ${initial} ${item.name}, ${sName} cho bạn ${sub} ${item.unit}. Hỏi ${sName} còn lại bao nhiêu ${item.name}?`,
           options: makeOptionsArray(correct, wrong),
@@ -810,7 +826,7 @@ export function synthesizePersonalizedQuestions(
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: len1 >= 20 ? "C" : "B",
         skill: "Tính toán số đo độ dài xăng-ti-mét",
         prompt: `Tính: ${len1} cm + ${len2} cm = ... cm?`,
         options: makeOptionsArray(correct, wrong),
@@ -821,14 +837,14 @@ export function synthesizePersonalizedQuestions(
     }
 
     // 10. Dạng thời gian - xem đồng hồ đúng
-    if (p.includes("giờ") || p.includes("đồng hồ")) {
+    if (p.includes("kim ngắn") || p.includes("đồng hồ")) {
       const hour = randIntSeeded(rng, 1, 11);
       const correct = `${hour} giờ`;
       const wrong = [`${hour + 1} giờ`, `${Math.max(1, hour - 1)} giờ`, `${(hour + 2) % 12 || 12} giờ`];
       generated.push({
         id: questionId,
         phase: isChallenge ? "challenge" : "normal",
-        difficulty: assignedDiff,
+        difficulty: "A",
         skill: "Xem giờ đúng trên đồng hồ",
         prompt: `Đồng hồ có kim ngắn chỉ số ${hour}, kim dài chỉ số 12. Hỏi đồng hồ chỉ mấy giờ?`,
         options: makeOptionsArray(correct, wrong),
@@ -838,20 +854,59 @@ export function synthesizePersonalizedQuestions(
       continue;
     }
 
-    // 11. Mẫu gốc đã được tinh chỉnh (tự động điều chỉnh theo template của mẫu.docx)
+    // 11. Mẫu gốc đã được tinh chỉnh (giữ nguyên độ khó chuẩn của mẫu, tránh trùng đề)
+    const fallbackTpl = usedPrompts.has(tpl.prompt.trim().toLowerCase())
+      ? (ragBank.find((q) => !usedPrompts.has(q.prompt.trim().toLowerCase()) && targetDiffs.includes(q.difficulty))
+        ?? ragBank.find((q) => !usedPrompts.has(q.prompt.trim().toLowerCase()))
+        ?? tpl)
+      : tpl;
+    usedPrompts.add(fallbackTpl.prompt.trim().toLowerCase());
     generated.push({
       id: questionId,
       phase: isChallenge ? "challenge" : "normal",
-      difficulty: assignedDiff,
-      skill: tpl.skill,
-      prompt: tpl.prompt,
-      options: [...tpl.options],
-      correctAnswer: tpl.correctAnswer,
-      explanation: tpl.explanation,
+      difficulty: fallbackTpl.difficulty,
+      skill: fallbackTpl.skill,
+      prompt: fallbackTpl.prompt,
+      options: [...fallbackTpl.options],
+      correctAnswer: fallbackTpl.correctAnswer,
+      explanation: fallbackTpl.explanation,
     });
   }
 
-  return generated;
+  // Bảo đảm 100% câu hỏi trong một đề không bao giờ bị trùng đề bài
+  const seenInBatch = new Set<string>();
+  const deduped: QuizQuestion[] = [];
+  for (const item of generated) {
+    const key = item.prompt.trim().toLowerCase();
+    if (!seenInBatch.has(key)) {
+      seenInBatch.add(key);
+      deduped.push(item);
+    }
+  }
+  if (deduped.length < count) {
+    const fillers = [
+      ...ragBank.filter((q) => targetDiffs.includes(q.difficulty)),
+      ...ragBank,
+    ];
+    for (const filler of fillers) {
+      if (deduped.length >= count) break;
+      const key = filler.prompt.trim().toLowerCase();
+      if (seenInBatch.has(key) || usedPrompts.has(key)) continue;
+      seenInBatch.add(key);
+      deduped.push({
+        id: deduped.length + 1,
+        phase: "normal",
+        difficulty: filler.difficulty,
+        skill: filler.skill,
+        prompt: filler.prompt,
+        options: [...filler.options],
+        correctAnswer: filler.correctAnswer,
+        explanation: filler.explanation,
+      });
+    }
+  }
+
+  return finalizeQuizSequence(deduped, count);
 }
 
 /**

@@ -1,6 +1,14 @@
 import "server-only";
 
-import { questions, type Difficulty, type QuizQuestion, type SurveyQuestion } from "./learning-data";
+import {
+  calibrateQuestionDifficulty,
+  DIFFICULTY_RANK,
+  finalizeQuizSequence,
+  questions,
+  type Difficulty,
+  type QuizQuestion,
+  type SurveyQuestion,
+} from "./learning-data";
 import { makeVariant } from "./survey-variant";
 import {
   analyzeStudentPerformanceProfile,
@@ -16,6 +24,8 @@ import {
   type PathEvaluation,
   type PlacementResult,
 } from "./placement";
+import type { ClassLearningProfile } from "./student-data";
+import { buildRagContext, type ReferenceDocument } from "./rag-service";
 
 export type GenerateQuizInput = {
   topic: string;
@@ -26,6 +36,8 @@ export type GenerateQuizInput = {
   intelligenceScore?: number;
   variationSeed?: string;
   excludePrompts?: string[];
+  classProfile?: ClassLearningProfile;
+  referenceDocument?: ReferenceDocument;
   /** Độ chính xác (% từ 0 đến 100) của học sinh */
   accuracy?: number;
   /** Điểm số của bài vừa làm (0 đến 100) */
@@ -39,6 +51,8 @@ export type GenerateQuizInput = {
 export type GeneratedQuiz = {
   source: "ai" | "question-bank" | "rag";
   questions: QuizQuestion[];
+  ragSummary?: string;
+  referenceDocName?: string;
 };
 
 type OllamaMessage = {
@@ -313,7 +327,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const x = randInt(2, 7), y = x + 1, z = x + randInt(2, 3);
     return {
-      skill: "Tìm số lớn nhất", difficulty: "C",
+      skill: "Tìm số lớn nhất", difficulty: "A",
       prompt: `Số nào lớn nhất trong ba số: ${x}, ${y}, ${z}?`,
       options: makeOptions(String(z), [String(x), String(y), String(Math.max(1, x - 1))]),
       correctAnswer: String(z),
@@ -335,7 +349,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const s1 = randInt(4, 9), s2 = randInt(1, s1 - 1);
     return {
-      skill: "Phép trừ phạm vi 10", difficulty: "C",
+      skill: "Phép trừ phạm vi 10", difficulty: "B",
       prompt: `Tính: ${s1} − ${s2} = ?`,
       options: makeOptions(String(s1 - s2), [String(s1 - s2 + 1), String(s1 - s2 + 2), String(Math.max(0, s1 - s2 - 1))]),
       correctAnswer: String(s1 - s2),
@@ -345,7 +359,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const m1 = randInt(1, 6), mAns = randInt(1, 10 - m1);
     return {
-      skill: "Điền số vào phép tính", difficulty: "C",
+      skill: "Điền số vào phép tính", difficulty: "B",
       prompt: `Điền số thích hợp: ${m1} + ☐ = ${m1 + mAns}`,
       options: makeOptions(String(mAns), [String(mAns + 1), String(mAns + 2), String(Math.max(1, mAns - 1))]),
       correctAnswer: String(mAns),
@@ -355,11 +369,21 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const b1 = randInt(2, 5), b2 = randInt(1, 4);
     return {
-      skill: "Bài toán thực tế", difficulty: "D",
+      skill: "Bài toán thực tế", difficulty: "B",
       prompt: `Bạn Lan có ${b1} cái kẹo, bạn Hoa cho Lan thêm ${b2} cái kẹo. Hỏi bạn Lan có mấy cái kẹo?`,
       options: makeOptions(`${b1 + b2} cái`, [`${b1 + b2 + 1} cái`, `${b1 + b2 + 2} cái`, `${Math.max(1, b1 + b2 - 1)} cái`]),
       correctAnswer: `${b1 + b2} cái`,
       explanation: `Ta làm phép tính cộng: ${b1} + ${b2} = ${b1 + b2} cái kẹo.`,
+    };
+  });
+  generators.push(() => {
+    const subB = randInt(2, 6), diffA = randInt(2, 8);
+    return {
+      skill: "Tìm số bị trừ", difficulty: "C",
+      prompt: `☐ − ${subB} = ${diffA}. Số ban đầu là?`,
+      options: makeOptions(String(subB + diffA), [String(subB + diffA - 1), String(subB + diffA + 1), String(Math.abs(diffA - subB) || 1)]),
+      correctAnswer: String(subB + diffA),
+      explanation: `Số ban đầu là ${diffA} + ${subB} = ${subB + diffA}.`,
     };
   });
 
@@ -367,7 +391,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const tens = randInt(2, 8), units = randInt(1, 9);
     return {
-      skill: "Chục và đơn vị", difficulty: "C",
+      skill: "Chục và đơn vị", difficulty: "B",
       prompt: `Số gồm ${tens} chục và ${units} đơn vị là số nào?`,
       options: makeOptions(String(tens * 10 + units), [String(units * 10 + tens), String(tens * 10 + units + 1), String(tens * 10 + units - 1)]),
       correctAnswer: String(tens * 10 + units),
@@ -377,7 +401,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const before = randInt(20, 89);
     return {
-      skill: "Số liền trước", difficulty: "C",
+      skill: "Số liền trước", difficulty: "B",
       prompt: `Số liền trước của số ${before} là số nào?`,
       options: makeOptions(String(before - 1), [String(before + 1), String(before + 2), String(before - 2)]),
       correctAnswer: String(before - 1),
@@ -387,7 +411,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const c1 = randInt(21, 60), c2 = c1 + randInt(1, 15);
     return {
-      skill: "So sánh số đến 100", difficulty: "C",
+      skill: "So sánh số đến 100", difficulty: "B",
       prompt: `Điền dấu thích hợp: ${c1} ☐ ${c2}`,
       options: makeOptions("<", [">", "=", "+"]),
       correctAnswer: "<",
@@ -399,7 +423,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const r1 = randInt(1, 5) * 10, r2 = randInt(1, 4) * 10;
     return {
-      skill: "Cộng tròn chục", difficulty: "D",
+      skill: "Cộng tròn chục", difficulty: "C",
       prompt: `Tính: ${r1} + ${r2} = ?`,
       options: makeOptions(String(r1 + r2), [String(r1 + r2 + 10), String(r1 + r2 - 10), String(r1 + r2 + 20)]),
       correctAnswer: String(r1 + r2),
@@ -409,7 +433,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const subTens = randInt(4, 9) * 10, subPart = randInt(1, subTens / 10 - 1) * 10;
     return {
-      skill: "Trừ tròn chục", difficulty: "D",
+      skill: "Trừ tròn chục", difficulty: "C",
       prompt: `Tính: ${subTens} − ${subPart} = ?`,
       options: makeOptions(String(subTens - subPart), [String(subTens - subPart + 10), String(subTens - subPart - 10), String(subTens - subPart + 20)]),
       correctAnswer: String(subTens - subPart),
@@ -420,7 +444,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
     const p1 = randInt(2, 5) * 10 + randInt(1, 4);
     const p2 = randInt(1, 3) * 10 + randInt(1, 4);
     return {
-      skill: "Cộng không nhớ", difficulty: "D",
+      skill: "Cộng không nhớ", difficulty: "C",
       prompt: `Tính: ${p1} + ${p2} = ?`,
       options: makeOptions(String(p1 + p2), [String(p1 + p2 + 1), String(p1 + p2 + 10), String(p1 + p2 - 10)]),
       correctAnswer: String(p1 + p2),
@@ -428,11 +452,11 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
     };
   });
 
-  // Level 6: Toán học trong cuộc sống
+  // Level 6: Toán học trong cuộc sống (độ khó A/B đúng chuẩn nhận biết)
   generators.push(() => {
     const lenA = randInt(4, 9), lenB = randInt(2, 6);
     return {
-      skill: "Độ dài xăng-ti-mét", difficulty: "D",
+      skill: "Độ dài xăng-ti-mét", difficulty: "B",
       prompt: `Tính: ${lenA} cm + ${lenB} cm = ?`,
       options: makeOptions(`${lenA + lenB} cm`, [`${lenA + lenB + 1} cm`, `${lenA + lenB - 1} cm`, `${lenA + lenB + 2} cm`]),
       correctAnswer: `${lenA + lenB} cm`,
@@ -442,7 +466,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
   generators.push(() => {
     const hour = randInt(1, 11);
     return {
-      skill: "Xem đồng hồ", difficulty: "E",
+      skill: "Xem đồng hồ", difficulty: "A",
       prompt: `Kim ngắn chỉ số ${hour}, kim dài chỉ số 12. Đồng hồ chỉ mấy giờ?`,
       options: makeOptions(`${hour} giờ`, [`${hour + 1} giờ`, `${Math.max(1, hour - 1)} giờ`, `${hour + 2} giờ`]),
       correctAnswer: `${hour} giờ`,
@@ -453,7 +477,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
     const days = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy"];
     const dIdx = randInt(0, 4);
     return {
-      skill: "Ngày trong tuần", difficulty: "D",
+      skill: "Ngày trong tuần", difficulty: "B",
       prompt: `Hôm nay là ${days[dIdx]}, ngày mai là thứ mấy?`,
       options: makeOptions(days[dIdx + 1], [days[(dIdx + 2) % 6], days[Math.max(0, dIdx - 1)], "Chủ nhật"]),
       correctAnswer: days[dIdx + 1],
@@ -461,28 +485,72 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
     };
   });
 
+  // Các dạng Giải quyết vấn đề & Thử thách thực sự (D & E)
+  generators.push(() => {
+    const x1 = randInt(12, 35), x2 = randInt(10, 25), miss = randInt(4, 18);
+    const total = x1 + x2 + miss;
+    return {
+      skill: "Tìm số hạng thứ ba", difficulty: "D",
+      prompt: `Điền số thích hợp: ${x1} + ${x2} + ☐ = ${total}`,
+      options: makeOptions(String(miss), [String(miss + 1), String(Math.max(1, miss - 1)), String(miss + 2)]),
+      correctAnswer: String(miss),
+      explanation: `Tổng hai số đầu là ${x1} + ${x2} = ${x1 + x2}. Số cần điền là ${total} − ${x1 + x2} = ${miss}.`,
+    };
+  });
+  generators.push(() => {
+    const start = randInt(25, 50), part1 = randInt(5, 12), part2 = randInt(3, 9);
+    const left = start - part1 - part2;
+    return {
+      skill: "Toán lời văn hai bước tính", difficulty: "D",
+      prompt: `An có ${start} quyển vở. An tặng bạn ${part1} quyển, sau đó tặng em ${part2} quyển. Hỏi An còn lại bao nhiêu quyển vở?`,
+      options: makeOptions(`${left} quyển`, [`${left + 2} quyển`, `${Math.max(1, left - 2)} quyển`, `${start - part1} quyển`]),
+      correctAnswer: `${left} quyển`,
+      explanation: `Sau lần đầu An còn ${start} − ${part1} = ${start - part1} quyển. Sau lần hai còn ${start - part1} − ${part2} = ${left} quyển.`,
+    };
+  });
+  generators.push(() => {
+    const mid = randInt(18, 42);
+    const a2 = randInt(10, 20), a1 = mid + 1 + a2;
+    const b2 = randInt(10, 20), b1 = mid - 1 + b2;
+    return {
+      skill: "Bất đẳng thức kép", difficulty: "E",
+      prompt: `Điền số thích hợp vào chỗ chấm: ${a1} − ${a2} > ... > ${b1} − ${b2}`,
+      options: makeOptions(String(mid), [String(mid + 1), String(mid - 1), String(mid + 2)]),
+      correctAnswer: String(mid),
+      explanation: `Ta có ${a1} − ${a2} = ${mid + 1} và ${b1} − ${b2} = ${mid - 1}, nên số ở giữa là ${mid}.`,
+    };
+  });
+  generators.push(() => {
+    const an = randInt(4, 10), d1 = randInt(2, 5), d2 = randInt(2, 5);
+    const minh = an + d1 + d2;
+    return {
+      skill: "Suy luận logic bắc cầu", difficulty: "E",
+      prompt: `An có ít hơn Bình ${d1} viên bi, Bình có ít hơn Minh ${d2} viên bi. Biết An có ${an} viên bi. Hỏi Minh có bao nhiêu viên bi?`,
+      options: makeOptions(`${minh} viên`, [`${an + d1} viên`, `${minh - 1} viên`, `${minh + 2} viên`]),
+      correctAnswer: `${minh} viên`,
+      explanation: `Bình có ${an} + ${d1} = ${an + d1} viên bi. Minh có ${an + d1} + ${d2} = ${minh} viên bi.`,
+    };
+  });
+
   const generatedQuestions: QuizQuestion[] = [];
   const seenPrompts = new Set<string>(input.excludePrompts ?? []);
   let tries = 0;
 
-  while (generatedQuestions.length < count && tries < 300) {
+  while (generatedQuestions.length < count && tries < 360) {
     tries += 1;
     const generator = generators[randInt(0, generators.length - 1)];
     const item = generator();
     if (seenPrompts.has(item.prompt)) continue;
+    // Ưu tiên chọn đúng dải độ khó yêu cầu trong 240 lần thử đầu, KHÔNG ép gán sai độ khó của câu hỏi
+    if (tries <= 240 && diffs.length > 0 && !diffs.includes(item.difficulty as Difficulty)) {
+      continue;
+    }
     seenPrompts.add(item.prompt);
-
-    const index = generatedQuestions.length;
-    const phase: "normal" | "challenge" = index < half ? "normal" : "challenge";
-    const difficulty: Difficulty = diffs.includes(item.difficulty as Difficulty)
-      ? (item.difficulty as Difficulty)
-      : (index < half ? (diffs[0] ?? "A") : (diffs[diffs.length - 1] ?? "C"));
 
     generatedQuestions.push({
       ...item,
-      id: index + 1,
-      phase,
-      difficulty,
+      id: generatedQuestions.length + 1,
+      phase: "normal",
     });
   }
 
@@ -492,7 +560,7 @@ function generateSmartQuestions(input: GenerateQuizInput, count: number): QuizQu
     generatedQuestions.push({ ...base, id: generatedQuestions.length + 1 });
   }
 
-  return generatedQuestions;
+  return finalizeQuizSequence(generatedQuestions, count);
 }
 
 function fallbackQuiz(count: number, input?: GenerateQuizInput): GeneratedQuiz {
@@ -1060,7 +1128,7 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
     curriculumLevel: input.curriculumLevel,
     intelligenceScore: input.intelligenceScore ?? intelligence,
     difficulties,
-    count: Math.min(count, 4),
+    count: Math.max(count, 8),
     variationSeed: input.variationSeed ?? input.topic,
     excludePrompts: input.excludePrompts,
     accuracy: input.accuracy,
@@ -1070,6 +1138,7 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
   });
 
   const contextText = context
+    .slice(0, 4)
     .map(
       (q, i) =>
         `Mẫu ${i + 1} (Đề ${q.deck}, câu ${q.index} | Kỹ năng: ${q.skill} | Độ khó: ${q.difficulty}):\n` +
@@ -1171,12 +1240,13 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
         if (!options.includes(dummy)) options.push(dummy);
       }
 
-      const normalized: QuizQuestion = {
+      const rawDifficulty: Difficulty = difficulties.includes(q.difficulty as Difficulty)
+        ? (q.difficulty as Difficulty)
+        : (i < normalCount ? (difficulties[0] ?? "A") : (difficulties[difficulties.length - 1] ?? "C"));
+      const draft: QuizQuestion = {
         id: i + 1,
         phase: q.phase === "challenge" ? "challenge" : (i >= normalCount ? "challenge" : "normal"),
-        difficulty: (difficulties.includes(q.difficulty as Difficulty)
-          ? (q.difficulty as Difficulty)
-          : (i < normalCount ? (difficulties[0] ?? "A") : (difficulties[difficulties.length - 1] ?? "C"))),
+        difficulty: rawDifficulty,
         skill: typeof q.skill === "string" && q.skill.trim() ? q.skill.trim() : "Toán học",
         prompt,
         options,
@@ -1184,6 +1254,10 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
         explanation: typeof q.explanation === "string" && q.explanation.trim()
           ? q.explanation.trim()
           : `Đáp án đúng là ${correctAnswer}.`,
+      };
+      const normalized: QuizQuestion = {
+        ...draft,
+        difficulty: calibrateQuestionDifficulty(draft),
       };
 
       if (isValidQuizQuestion(normalized)) {
@@ -1198,10 +1272,10 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
           intelligenceScore: intelligence,
           count: count - normalizedQuestions.length,
         });
-        const combined = [...normalizedQuestions, ...remainingTemplates].map((q, idx) => ({ ...q, id: idx + 1 }));
-        return { source: "ai", questions: combined.slice(0, count) };
+        const combined = finalizeQuizSequence([...normalizedQuestions, ...remainingTemplates], count);
+        return { source: "ai", questions: combined };
       }
-      return { source: "ai", questions: normalizedQuestions.slice(0, count) };
+      return { source: "ai", questions: finalizeQuizSequence(normalizedQuestions, count) };
     }
   }
 
@@ -1217,4 +1291,112 @@ export async function generateRagQuiz(input: GenerateQuizInput): Promise<Generat
   }
 
   return fallbackQuiz(count, input);
+}
+
+export type PersonalizeAIRequest = {
+  studentId: number | string;
+  studentName: string;
+  studentStatus: string;
+  interest?: string;
+  topic?: string;
+  curriculumLevel?: number;
+};
+
+export async function generatePersonalizedQuizWithAI(
+  req: PersonalizeAIRequest
+): Promise<QuizQuestion[] | null> {
+  const count = 10;
+  const status = req.studentStatus || "Ổn định";
+  const interest = req.interest || "Động vật dễ thương";
+  const topic = req.topic || "Toán học lớp 1";
+  const level = req.curriculumLevel || 1;
+
+  const difficultyHint =
+    status === "Cần hỗ trợ"
+      ? "Học sinh cần hỗ trợ: Đề bài dùng số nhỏ trong phạm vi 10, câu chữ ngắn gọn, có emoji đếm trực quan, mức độ dễ hiểu (Mức A, B)."
+      : status === "Xuất sắc"
+      ? "Học sinh xuất sắc: Đề bài mở rộng phạm vi 20, có bài toán tư duy logic, tìm quy luật, toán đố nhiều bước, mức độ nâng cao (Mức C, D, E)."
+      : "Học sinh mức ổn định: Đề bài cân bằng giữa đếm trực quan và tính nhẩm, phạm vi 10-15 (Mức B, C).";
+
+  const systemContent = `Bạn là chuyên gia sư phạm tiểu học hàng đầu tại Việt Nam.
+Nhiệm vụ của bạn là SÁNG TÁC một bộ đề toán 10 câu trắc nghiệm Lớp 1 (Chương trình GDPT 2018) được CÁ NHÂN HÓA ĐẶC BIỆT cho một học sinh cụ thể:
+- Tên học sinh: ${req.studentName}
+- Năng lực học tập: ${status} (${difficultyHint})
+- Chủ đề / Sở thích em yêu thích nhất: ${interest}
+- Chủ đề bài học: ${topic} (Khối ${level})
+
+YÊU CẦU QUAN TRỌNG:
+1. Hãy lồng ghép TÊN HỌC SINH ("bé ${req.studentName}" hoặc "${req.studentName}") và SỞ THÍCH (${interest}) vào ngữ cảnh, câu chuyện của từng câu hỏi để bé cảm thấy đề toán được viết riêng cho chính mình.
+2. Dùng các EMOJI sinh động minh họa trong đề bài (ví dụ nếu thích khủng long: 🦖, 🦕, 🥚; nếu vũ trụ: 🚀, ⭐, 🪐; nếu động vật: 🐰, 🐶, 🐱; nếu xe cộ: 🚗, 🏎️, 🚂...).
+3. Câu 1-7 là 'normal' (phát triển kỹ năng), Câu 8-10 là 'challenge' (thử thách hứng thú).
+4. Mỗi câu có 4 lựa chọn (options), correctAnswer phải nằm trong options, explanation giải thích rõ ràng, động viên bé.
+5. Toán lớp 1: Phép cộng trừ trong phạm vi 10-20, không nhớ hoặc cộng trừ đơn giản, so sánh số lượng, đếm hình, tìm số còn thiếu.
+6. Trả về ĐÚNG định dạng JSON: { "questions": [ { "id": 1, "phase": "normal", "difficulty": "A", "skill": "...", "prompt": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "...", "explanation": "..." } ] }`;
+
+  const userContent = `Hãy sáng tạo ngay bộ 10 câu hỏi toán độc nhất cho bé ${req.studentName} theo chủ đề "${interest}".`;
+
+  try {
+    const parsed = await fetchParsedAIChat(
+      [
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent },
+      ],
+      0.7,
+      {
+        type: "object",
+        properties: {
+          questions: {
+            type: "array",
+            minItems: count,
+            maxItems: count,
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "integer" },
+                phase: { type: "string", enum: ["normal", "challenge"] },
+                difficulty: { type: "string" },
+                skill: { type: "string" },
+                prompt: { type: "string" },
+                options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
+                correctAnswer: { type: "string" },
+                explanation: { type: "string" },
+              },
+              required: ["id", "phase", "difficulty", "skill", "prompt", "options", "correctAnswer", "explanation"],
+            },
+          },
+        },
+        required: ["questions"],
+      }
+    );
+
+    if (Array.isArray(parsed?.questions) && parsed.questions.length > 0) {
+      const validQuestions = parsed.questions
+        .filter(isValidQuizQuestion)
+        .slice(0, count)
+        .map((q) => ({
+          ...q,
+          difficulty: calibrateQuestionDifficulty(q),
+        }))
+        .sort((a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty]);
+      if (validQuestions.length >= 8) {
+        return validQuestions.map((q, idx) => ({
+          ...q,
+          id: idx + 1,
+          phase: idx < 7 ? "normal" : "challenge",
+          isAdaptive: true,
+          personalizedFor: {
+            studentId: req.studentId,
+            studentName: req.studentName,
+            interest,
+            status,
+            generatedBy: "ai",
+          },
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn("AI generation for student failed or timed out:", err);
+  }
+
+  return null;
 }

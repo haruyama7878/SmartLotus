@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import path from 'path';
 
-const ARTIFACT_DIR = "C:\\Users\\dungs\\.gemini\\antigravity\\brain\\e861a943-eb90-4a24-bbfe-801c29116d6d";
+const ARTIFACT_DIR = "C:\\Users\\dungs\\.gemini\\antigravity\\brain\\508b0c6e-ad22-4975-a322-62ada21c3732";
 const CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 
 function delay(ms) {
