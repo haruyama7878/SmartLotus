@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { classroomMemberships, classrooms, users } from "@/db/schema";
 import { getAuthenticatedSupabaseUser, getOrCreateAppUser } from "@/lib/server-user";
@@ -155,6 +155,48 @@ export async function GET(request: Request) {
           isRegisteredClass: true,
         });
       }
+    }
+
+    const numericIds = resultList
+      .map((item) => Number(item.id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0);
+    const membershipCountMap = new Map<number, number>();
+    if (numericIds.length > 0) {
+      const counts = await db
+        .select({
+          classroomId: classroomMemberships.classroomId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(classroomMemberships)
+        .where(inArray(classroomMemberships.classroomId, numericIds))
+        .groupBy(classroomMemberships.classroomId);
+      for (const row of counts) {
+        membershipCountMap.set(row.classroomId, Number(row.count) || 0);
+      }
+    }
+
+    for (const item of resultList) {
+      const numericId = Number(item.id);
+      let studentCount = Number.isSafeInteger(numericId) ? (membershipCountMap.get(numericId) ?? 0) : 0;
+      const itemSchoolCode = typeof item.schoolCode === "string" ? item.schoolCode : "";
+      const itemLabel = typeof item.label === "string" ? item.label : "";
+      if (itemSchoolCode && itemLabel) {
+        const [autoStudents] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(users)
+          .where(
+            and(
+              eq(users.role, "student"),
+              eq(users.schoolCode, itemSchoolCode),
+              sql`UPPER(${users.className}) = UPPER(${itemLabel})`
+            )
+          );
+        const autoCount = Number(autoStudents?.count) || 0;
+        if (autoCount > studentCount) {
+          studentCount = autoCount;
+        }
+      }
+      item.studentCount = studentCount;
     }
 
     return Response.json({ classrooms: resultList });

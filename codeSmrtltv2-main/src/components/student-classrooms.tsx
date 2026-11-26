@@ -606,7 +606,7 @@ export default function StudentClassrooms({
         <section
           className={
             viewMode === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 items-stretch"
+              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-stretch"
               : "flex flex-col gap-4"
           }
         >
