@@ -15,18 +15,20 @@
   --shadow: 0 10px 34px rgba(65, 45, 105, 0.075);
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--ink);
-  font-family: "Segoe UI", "Arial Rounded MT Bold", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--ink);
+    font-family: "Segoe UI", "Arial Rounded MT Bold", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible { outline: 3px solid rgba(124, 58, 237, .28); outline-offset: 2px; }
 }
-button, input { font: inherit; }
-button { cursor: pointer; }
-button:focus-visible { outline: 3px solid rgba(124, 58, 237, .28); outline-offset: 2px; }
 
 .app-shell { min-height: 100vh; }
 .sidebar {
