@@ -25,7 +25,7 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [showRoster, setShowRoster] = useState(false);
+  const [expandedRosterId, setExpandedRosterId] = useState<string | null>(null);
   const [classMembers, setClassMembers] = useState<{
     classInfo: {
       name: string;
@@ -189,63 +189,98 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
       ) : (
         <section className="student-class-list">
           {classrooms.map((classroom) => {
-            const currentSchoolCode = classroom.schoolCode || classMembers?.classInfo?.schoolCode || "";
-            const currentClassCode = classroom.classCode || classMembers?.classInfo?.code || "";
-            const totalMembers = classMembers?.students?.length ?? (classroom.studentCount ?? 0);
+            const matchesPrimaryRoster = Boolean(
+              classMembers && (
+                (classroom.classCode && classroom.classCode === classMembers.classInfo?.code) ||
+                classroom.label === classMembers.classInfo?.name ||
+                classroom.name === `Lớp ${classMembers.classInfo?.name}`
+              )
+            );
+            const currentSchoolCode = classroom.schoolCode || (matchesPrimaryRoster ? classMembers?.classInfo?.schoolCode : "") || "";
+            const currentClassCode = classroom.classCode || classroom.joinCode || (matchesPrimaryRoster ? classMembers?.classInfo?.code : "") || "";
+            const totalMembers = matchesPrimaryRoster
+              ? (classMembers?.students?.length ?? (classroom.studentCount ?? 0))
+              : (classroom.studentCount ?? 0);
+            const classAssignments = assignmentsByClass.get(classroom.id) ?? [];
+            const teacherName = classroom.teacherName || "Giáo viên bộ môn";
+            const teacherInitials = teacherName
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(-2)
+              .map((part) => part[0]?.toUpperCase() ?? "")
+              .join("") || "GV";
+            const isRosterOpen = expandedRosterId === classroom.id;
 
             return (
-              <article className="card student-class-card" key={classroom.id}>
-                <div className={`classroom-card-banner tone-${classroom.color}`}>
-                  <span className="classroom-card-banner-title">{classroom.name}</span>
-                  {currentClassCode && (
-                    <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.25)", padding: "2px 8px", borderRadius: "12px", fontWeight: 700 }}>
-                      Mã lớp: {currentClassCode}
+              <article className="student-class-card" key={classroom.id}>
+                <div className={`classroom-card-banner student-class-banner tone-${classroom.color || "purple"}`}>
+                  <div className="student-class-banner-top">
+                    <span className="student-class-pill">
+                      <Icon name="book" size={12} /> {classroom.subject || "Toán"}
                     </span>
-                  )}
-                </div>
-                <div className="student-class-copy">
-                  <h2>{classroom.name}</h2>
-                  <p>{classroom.subject} · {classroom.teacherName ? `GV: ${classroom.teacherName}` : "Lớp của bạn"}</p>
-                  <p>{classroom.description || "Chưa có mô tả"}</p>
-
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "10px 0" }}>
-                    {currentSchoolCode && (
-                      <span style={{ fontSize: "11px", background: "#f3e8ff", color: "#6d28d9", padding: "4px 8px", borderRadius: "6px", fontWeight: 600 }}>
-                        Mã trường: <strong style={{ fontFamily: "monospace" }}>{currentSchoolCode}</strong>
-                      </span>
-                    )}
                     {currentClassCode && (
-                      <span style={{ fontSize: "11px", background: "#ecfdf5", color: "#047857", padding: "4px 8px", borderRadius: "6px", fontWeight: 600 }}>
-                        Mã lớp: <strong style={{ fontFamily: "monospace" }}>{currentClassCode}</strong>
+                      <span className="student-class-pill code">
+                        {currentClassCode}
                       </span>
                     )}
+                  </div>
+                  <h2 className="student-class-banner-title">{classroom.name}</h2>
+                </div>
+
+                <div className="student-class-copy">
+                  <div className="student-class-teacher">
+                    <div className="student-class-teacher-left">
+                      <span className="student-class-teacher-avatar" aria-hidden="true">{teacherInitials}</span>
+                      <div className="student-class-teacher-meta">
+                        <small>Giáo viên</small>
+                        <strong>{teacherName}</strong>
+                      </div>
+                    </div>
                     {totalMembers > 0 && (
-                      <span style={{ fontSize: "11px", background: "#eff6ff", color: "#1d4ed8", padding: "4px 8px", borderRadius: "6px", fontWeight: 600 }}>
-                        {totalMembers} học sinh trong lớp
+                      <span className="student-class-member-badge">
+                        <Icon name="users" size={11} /> {totalMembers} HS
                       </span>
                     )}
                   </div>
 
-                  {classMembers && classMembers.students && classMembers.students.length > 0 && (
-                    <div style={{ margin: "12px 0", borderTop: "1px dashed #e2e8f0", paddingTop: "10px" }}>
+                  <p className="student-class-desc">
+                    {classroom.description?.trim() || "Lớp học đồng hành cùng chương trình Toán tư duy Smart Lotus."}
+                  </p>
+
+                  {(currentSchoolCode || currentClassCode) && (
+                    <div className="student-class-chips">
+                      {currentSchoolCode && (
+                        <span className="student-chip school">
+                          Mã trường: <strong>{currentSchoolCode}</strong>
+                        </span>
+                      )}
+                      {currentClassCode && (
+                        <span className="student-chip classcode">
+                          Mã lớp: <strong>{currentClassCode}</strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {matchesPrimaryRoster && classMembers && classMembers.students && classMembers.students.length > 0 && (
+                    <div className="student-roster-box">
                       <button
                         type="button"
-                        className="secondary-button"
-                        style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", fontSize: "12px" }}
-                        onClick={() => setShowRoster((prev) => !prev)}
+                        className="secondary-button student-roster-toggle"
+                        onClick={() => setExpandedRosterId((prev) => (prev === classroom.id ? null : classroom.id))}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Icon name="users" size={14} /> Bạn học cùng lớp ({classMembers.students.length} bạn có cùng thông tin lớp)
+                          <Icon name="users" size={13} /> Bạn cùng lớp ({classMembers.students.length})
                         </span>
-                        <span>{showRoster ? "▲ Thu gọn" : "▼ Xem danh sách"}</span>
+                        <span>{isRosterOpen ? "▲ Thu gọn" : "▼ Xem danh sách"}</span>
                       </button>
 
-                      {showRoster && (
-                        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", maxHeight: "240px", overflowY: "auto", background: "#f8fafc", padding: "8px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                      {isRosterOpen && (
+                        <div className="student-roster-list">
                           {classMembers.students.map((st) => (
-                            <div key={st.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", background: "#fff", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#e0e7ff", color: "#4338ca", display: "grid", placeItems: "center", fontSize: "11px", fontWeight: 700 }}>
+                            <div className="student-roster-item" key={st.id}>
+                              <div className="student-roster-item-left">
+                                <div className="student-roster-avatar">
                                   {st.avatar || "HS"}
                                 </div>
                                 <div>
@@ -263,59 +298,73 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                     </div>
                   )}
 
-                  {classMembers && classMembers.otherClasses && classMembers.otherClasses.length > 1 && (
-                    <div style={{ margin: "10px 0", fontSize: "11px" }}>
+                  {matchesPrimaryRoster && classMembers && classMembers.otherClasses && classMembers.otherClasses.length > 1 && (
+                    <div style={{ fontSize: "11px" }}>
                       <div style={{ color: "#64748b", marginBottom: "4px", fontWeight: 600 }}>Các lớp khác cùng trường:</div>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {classMembers.otherClasses
                           .filter((oc) => oc.code !== currentClassCode)
                           .map((oc) => (
-                            <span key={oc.code} style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "4px", color: "#475569" }}>
-                              Lớp {oc.name} (Mã: {oc.code})
+                            <span key={oc.code} style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "6px", color: "#475569" }}>
+                              Lớp {oc.name} ({oc.code})
                             </span>
                           ))}
                       </div>
                     </div>
                   )}
 
-                  <h3>Bài tập được giao</h3>
-                  {(assignmentsByClass.get(classroom.id) ?? []).length === 0 ? (
-                    <p>Chưa có bài tập.</p>
-                  ) : (assignmentsByClass.get(classroom.id) ?? []).map((assignment) => (
-                    <div className="student-assignment-row" key={assignment.id}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                          <strong>{assignment.title}</strong>
-                          {assignment.isAdaptive && (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-                                color: "#6d28d9",
-                                border: "1px solid #ddd6fe",
-                                fontSize: "10px",
-                                fontWeight: 750,
-                                padding: "2px 7px",
-                                borderRadius: "6px",
-                              }}
-                            >
-                              <Icon name="sparkles" size={11} /> Đề cá nhân hóa AI
-                            </span>
+                  <div className="student-class-assignments">
+                    <div className="student-class-assignments-head">
+                      <h3><Icon name="target" size={14} /> Bài tập được giao</h3>
+                      <span className="student-assignment-count">{classAssignments.length} bài</span>
+                    </div>
+
+                    {classAssignments.length === 0 ? (
+                      <p className="student-assignment-empty">✨ Chưa có bài tập nào được giao.</p>
+                    ) : classAssignments.map((assignment) => (
+                      <div className="student-assignment-row" key={assignment.id}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            <strong>{assignment.title}</strong>
+                            {assignment.isAdaptive && (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
+                                  color: "#6d28d9",
+                                  border: "1px solid #ddd6fe",
+                                  fontSize: "9.5px",
+                                  fontWeight: 750,
+                                  padding: "2px 7px",
+                                  borderRadius: "6px",
+                                }}
+                              >
+                                <Icon name="sparkles" size={10} /> Cá nhân hóa AI
+                              </span>
+                            )}
+                          </div>
+                          <small>
+                            {assignment.topic} · Hạn {new Date(assignment.dueDate).toLocaleString("vi-VN")}
+                            {assignment.personalizedTheme && ` · Chủ đề: ${assignment.personalizedTheme}`}
+                          </small>
+                          {assignment.submission && (
+                            <small style={{ color: "#059669", fontWeight: 700 }}>
+                              ✓ Đã nộp · {assignment.submission.correctAnswers}/{assignment.submission.totalQuestions} câu đúng
+                            </small>
                           )}
                         </div>
-                        <small>
-                          {assignment.topic} · Hạn nộp {new Date(assignment.dueDate).toLocaleString("vi-VN")}
-                          {assignment.personalizedTheme && ` · Đề theo sở thích: ${assignment.personalizedTheme}`}
-                        </small>
-                        {assignment.submission && <small>Đã nộp · {assignment.submission.correctAnswers}/{assignment.submission.totalQuestions} câu đúng</small>}
+                        <button
+                          className="primary-button"
+                          disabled={Boolean(assignment.submission) || !assignment.questions?.length}
+                          onClick={() => onStartAssignment(assignment)}
+                        >
+                          {assignment.submission ? "Đã nộp" : (assignment.isAdaptive ? "✨ Làm bài" : "Làm bài")}
+                        </button>
                       </div>
-                      <button className="primary-button" disabled={Boolean(assignment.submission) || !assignment.questions?.length} onClick={() => onStartAssignment(assignment)}>
-                        {assignment.submission ? "Đã nộp" : (assignment.isAdaptive ? "✨ Làm bài" : "Làm bài")}
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </article>
             );
