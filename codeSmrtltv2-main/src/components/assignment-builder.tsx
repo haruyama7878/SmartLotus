@@ -37,7 +37,7 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
   const [classProfile, setClassProfile] = useState<ClassLearningProfile | null>(null);
   const [classroomStudents, setClassroomStudents] = useState<Student[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<Difficulty[]>([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<Difficulty[]>(["A", "B", "C"]);
   const [showAiModal, setShowAiModal] = useState(false);
   const [refDocText, setRefDocText] = useState("");
   const [refDocName, setRefDocName] = useState("");
@@ -65,31 +65,21 @@ export default function AssignmentBuilder({ onBack, onToast }: { onBack: () => v
     setClassroomId(newId);
     setClassProfile(null);
     setClassroomStudents([]);
-    if (newId) {
-      setLoadingProfile(true);
-    }
+    setSelectedDifficulties(["A", "B", "C"]);
+    setLoadingProfile(Boolean(newId));
   }
 
   useEffect(() => {
     void smartLotusApi.getClassrooms().then(({ classrooms: items }) => {
       setClassrooms(items);
-      if (items[0]) setClassroomId(items[0].id);
+      if (items[0]) handleSelectClassroom(items[0].id);
     }).catch((loadError: unknown) => {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải lớp học");
     });
   }, []);
 
   useEffect(() => {
-    if (!classroomId) {
-      setClassProfile(null);
-      setClassroomStudents([]);
-      setSelectedDifficulties(["A", "B", "C"]);
-      setLoadingProfile(false);
-      return;
-    }
-    setClassProfile(null);
-    setClassroomStudents([]);
-    setLoadingProfile(true);
+    if (!classroomId) return;
     let cancelled = false;
 
     void smartLotusApi

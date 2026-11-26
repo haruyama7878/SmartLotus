@@ -627,6 +627,7 @@ export default function SmartLotusApp() {
   const [teacherRequests, setTeacherRequests] = useState<StudentClassroomRequest[]>([]);
   const [selectedRequestModal, setSelectedRequestModal] = useState<StudentClassroomRequest | null>(null);
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
@@ -703,10 +704,14 @@ export default function SmartLotusApp() {
 
   useEffect(() => {
     if (!authenticated || (role !== "teacher" && role !== "admin")) return;
+    let active = true;
     knownTeacherRequests.current = new Set();
-    void fetchTeacherRequests();
+    queueMicrotask(() => {
+      if (active) void fetchTeacherRequests();
+    });
     const timer = window.setInterval(() => void fetchTeacherRequests(), 20_000);
     return () => {
+      active = false;
       window.clearInterval(timer);
     };
   }, [authenticated, role, fetchTeacherRequests]);
@@ -1497,6 +1502,7 @@ export default function SmartLotusApp() {
         isCompetition={isComp}
         userRank={userRank}
         greetingName={greetingName}
+        studyStreak={studyStreak}
         onSkip={skipLesson}
         onHome={() => {
           setScreen("app");
@@ -1635,7 +1641,7 @@ export default function SmartLotusApp() {
             )}
           </div>
         )}
-        <div className="sidebar-footer"><span>© 2026 Smart Lotus</span><button>Trợ giúp</button></div>
+        <div className="sidebar-footer"><span>© 2026 Smart Lotus</span><button type="button" onClick={() => setHelpOpen(true)}>Trợ giúp</button></div>
       </aside>
 
       {mobileOpen && <button className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-label="Đóng menu" />}
@@ -1647,7 +1653,7 @@ export default function SmartLotusApp() {
             <div className="mobile-logo"><LotusLogo compact /></div>
             <div className="page-heading">
               <span>{role === "student" ? "Không gian học tập" : role === "teacher" ? "Trung tâm giáo viên" : "Bảng điều hành"}</span>
-              <strong>{role === "student" ? navItems.find((item) => item.id === view)?.label : role === "teacher" ? teacherView === "overview" ? "Tổng quan lớp" : teacherView === "classes" ? "Lớp học" : teacherView === "extra_classes" ? "Lớp học thêm" : "Bài tập" : "Quản trị hệ thống"}</strong>
+              <strong>{role === "student" ? navItems.find((item) => item.id === view)?.label : role === "teacher" ? teacherView === "overview" ? "Tổng quan lớp" : teacherView === "classes" ? "Lớp học" : teacherView === "extra_classes" ? "Lớp học thêm" : "Bài tập" : adminView === "overview" ? "Tổng quan" : adminView === "users" ? "Người dùng" : adminView === "content" ? "Nội dung" : adminView === "data" ? "Dữ liệu" : "Cấu hình"}</strong>
             </div>
           </div>
           <div className="topbar-actions">
@@ -1757,6 +1763,7 @@ export default function SmartLotusApp() {
                 teacherName={dashboard.user.displayName}
                 onToast={setToast}
                 onCreateAssignment={() => setTeacherView("assignments")}
+                onOpenClasses={() => setTeacherView("classes")}
                 onSendNotification={(title, description) => setToast(`Đã gửi thông báo: ${title} — ${description}`)}
               />
             ) : teacherView === "classes" ? (
@@ -1957,6 +1964,40 @@ export default function SmartLotusApp() {
         />
       )}
       {profileEditorOpen && <ProfileEditor user={dashboard.user} onClose={() => setProfileEditorOpen(false)} onSaved={updateProfile} />}
+      {helpOpen && (
+        <div className="profile-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setHelpOpen(false); }}>
+          <section className="profile-editor" role="dialog" aria-modal="true" aria-labelledby="help-dialog-title">
+            <div className="profile-editor-heading">
+              <div><span className="section-kicker">TRỢ GIÚP SMART LOTUS</span><h2 id="help-dialog-title">Hướng dẫn nhanh</h2></div>
+              <button type="button" className="icon-button" onClick={() => setHelpOpen(false)} aria-label="Đóng"><Icon name="close" size={17} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px", fontSize: "12.5px", color: "#4b5563", lineHeight: 1.6 }}>
+              {role === "student" ? (
+                <>
+                  <p style={{ margin: 0 }}>• <strong>Bài tập & Hành trình ếch xanh:</strong> Chọn mục <em>Bài tập</em> để luyện tập theo lộ trình thích ứng hoặc làm bài tự do.</p>
+                  <p style={{ margin: 0 }}>• <strong>Lớp học & Lớp học thêm:</strong> Nhập mã lớp từ giáo viên hoặc gửi yêu cầu tham gia lớp học thêm.</p>
+                  <p style={{ margin: 0 }}>• <strong>Đấu trường tuần:</strong> Thi thử thách tốc độ 5 phút để tích lũy điểm hoa sen và leo bảng xếp hạng.</p>
+                </>
+              ) : role === "teacher" ? (
+                <>
+                  <p style={{ margin: 0 }}>• <strong>Tổng quan lớp:</strong> Theo dõi điểm trung bình, tiến độ và học sinh cần hỗ trợ theo thời gian thực.</p>
+                  <p style={{ margin: 0 }}>• <strong>Bài tập AI RAG:</strong> Soạn bộ đề theo chuẩn GDPT 2018 hoặc phân hóa đề riêng cho từng học sinh.</p>
+                  <p style={{ margin: 0 }}>• <strong>Lớp học & Lớp học thêm:</strong> Quản lý sĩ số, mã mời và phê duyệt yêu cầu xin vào lớp.</p>
+                </>
+              ) : (
+                <>
+                  <p style={{ margin: 0 }}>• <strong>Người dùng:</strong> Tìm kiếm, thêm tài khoản mới và đồng bộ thông tin lên Supabase.</p>
+                  <p style={{ margin: 0 }}>• <strong>Nội dung & Dữ liệu:</strong> Cập nhật trạng thái bài học, lọc nguồn dữ liệu và xuất báo cáo JSON.</p>
+                  <p style={{ margin: 0 }}>• <strong>Cấu hình:</strong> Bật/tắt tùy chọn hệ thống và lưu cấu hình trực tiếp.</p>
+                </>
+              )}
+            </div>
+            <div className="profile-editor-actions" style={{ marginTop: "18px" }}>
+              <button type="button" className="primary-button" onClick={() => setHelpOpen(false)}>Đã hiểu</button>
+            </div>
+          </section>
+        </div>
+      )}
       {toast && <div className="toast"><Icon name="check" />{toast}</div>}
     </div>
   );
@@ -2913,6 +2954,7 @@ function weeklyMinutes(attempts: AttemptSummary[]) {
 }
 
 function StudentDashboard({ dashboard, greetingName, todayLabel, todayGoal, studyStreak, evaluation, attemptHistory, onStartQuiz, onOpenExercises, onOpenCompetition }: { dashboard: DashboardData; greetingName: string; todayLabel: string; todayGoal: TodayGoal; studyStreak: number; evaluation: PathEvaluation | null; attemptHistory: AttemptSummary[]; onStartQuiz: () => void; onOpenExercises: () => void; onOpenCompetition: () => void }) {
+  const [activityWindow, setActivityWindow] = useState<"week" | "recent3">("week");
   const todayMinutes = todayGoal.minutes;
   const todayPoints = todayGoal.points;
   const todayCorrect = todayGoal.correctAnswers;
@@ -2993,13 +3035,17 @@ function StudentDashboard({ dashboard, greetingName, todayLabel, todayGoal, stud
 
       <div className="dashboard-grid lower-grid">
         <section className="card activity-card">
-          <div className="card-heading"><div><span className="section-kicker">HOẠT ĐỘNG</span><h2>Nhịp học tuần này</h2></div><button className="period-button">7 ngày qua <Icon name="chevron" size={15} /></button></div>
+          <div className="card-heading"><div><span className="section-kicker">HOẠT ĐỘNG</span><h2>{activityWindow === "week" ? "Nhịp học tuần này" : "3 ngày gần đây"}</h2></div><button type="button" className="period-button" onClick={() => setActivityWindow((prev) => (prev === "week" ? "recent3" : "week"))}>{activityWindow === "week" ? "7 ngày qua" : "3 ngày gần đây"} <Icon name="chevron" size={15} /></button></div>
           <div className="chart-wrap">
             <div className="chart-scale"><span>30p</span><span>20p</span><span>10p</span><span>0p</span></div>
             <div className="bar-chart">
-              {weekly.map((minutes, index) => (
-                <div className="bar-column" key={index}><div className={`chart-bar ${index === todayIndex ? "peak" : ""}`} style={{ height: `${Math.max(2, Math.min(30, minutes)) * 3}px` }}>{index === todayIndex && <span>{Math.round(minutes)}p</span>}</div><small>{["T2", "T3", "T4", "T5", "T6", "T7", "CN"][index]}</small></div>
-              ))}
+              {weekly.map((minutes, index) => {
+                const visible = activityWindow === "week" || index === todayIndex || index === (todayIndex + 6) % 7 || index === (todayIndex + 5) % 7;
+                if (!visible) return null;
+                return (
+                  <div className="bar-column" key={index}><div className={`chart-bar ${index === todayIndex ? "peak" : ""}`} style={{ height: `${Math.max(2, Math.min(30, minutes)) * 3}px` }}>{index === todayIndex && <span>{Math.round(minutes)}p</span>}</div><small>{["T2", "T3", "T4", "T5", "T6", "T7", "CN"][index]}</small></div>
+                );
+              })}
             </div>
           </div>
           <div className="chart-summary"><span><i /> Tổng thời gian: <strong>{Math.floor(totalWeekMinutes / 60) > 0 ? `${Math.floor(totalWeekMinutes / 60)} giờ ${totalWeekMinutes % 60} phút` : `${totalWeekMinutes} phút`}</strong></span><span>Trung bình <strong>{averageWeekMinutes} phút/ngày</strong></span></div>
@@ -3474,24 +3520,38 @@ const adminUsers = [
 ];
 
 function AdminDashboard({ activeView }: { activeView: AdminView }) {
+  const [overviewPeriod, setOverviewPeriod] = useState<"week" | "month">("week");
   if (activeView === "users") return <AdminUsersView />;
   if (activeView === "content") return <AdminContentView />;
   if (activeView === "data") return <AdminDataView />;
   if (activeView === "config") return <AdminConfigView />;
+
+  const chartPath = overviewPeriod === "week"
+    ? "M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25"
+    : "M0 165 C90 140 120 95 170 90 S270 120 340 78 S440 52 510 46 S620 28 700 18";
+  const chartAreaPath = `${chartPath} V220 H0Z`;
+  const chartDots = overviewPeriod === "week"
+    ? [{ cx: 0, cy: 180 }, { cx: 170, cy: 120 }, { cx: 340, cy: 105 }, { cx: 510, cy: 70 }, { cx: 700, cy: 25 }]
+    : [{ cx: 0, cy: 165 }, { cx: 170, cy: 90 }, { cx: 340, cy: 78 }, { cx: 510, cy: 46 }, { cx: 700, cy: 18 }];
+  const chartLabels = overviewPeriod === "week"
+    ? ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+    : ["Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4", "Tuần 5", "Tuần 6", "Tuần 7"];
 
   return (
     <div className="view-stack">
       <section className="page-intro admin-intro"><div><span className="eyebrow purple"><Icon name="shield" size={16} /> SMART LOTUS ADMIN</span><h1>Tổng quan hệ thống</h1><p>Dữ liệu cập nhật theo thời gian thực từ hệ thống học tập.</p></div><span className="system-online"><i /> Hệ thống ổn định</span></section>
       <section className="stat-grid admin-stats">{adminMetrics.map((metric, index) => <StatCard key={metric.label} icon={(["users", "school", "book", "chart"] as IconName[])[index]} tone={metric.tone} value={metric.value} label={metric.label} change={metric.change} />)}</section>
       <div className="admin-grid">
-        <section className="card admin-chart"><div className="card-heading"><div><span className="section-kicker">TƯƠNG TÁC</span><h2>Hoạt động 7 ngày qua</h2></div><button className="period-button">Tuần này <Icon name="chevron" size={15} /></button></div><div className="line-chart"><div className="grid-lines"><i /><i /><i /><i /></div><svg viewBox="0 0 700 220" preserveAspectRatio="none" aria-label="Biểu đồ hoạt động"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8b5cf6" stopOpacity=".3" /><stop offset="1" stopColor="#8b5cf6" stopOpacity="0" /></linearGradient></defs><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25 V220 H0Z" fill="url(#area)" /><path d="M0 180 C80 170 90 110 170 120 S270 80 340 105 S440 38 510 70 S620 45 700 25" fill="none" stroke="#8b5cf6" strokeWidth="5" strokeLinecap="round" /><g fill="#fff" stroke="#8b5cf6" strokeWidth="4"><circle cx="0" cy="180" r="6" /><circle cx="170" cy="120" r="6" /><circle cx="340" cy="105" r="6" /><circle cx="510" cy="70" r="6" /><circle cx="700" cy="25" r="6" /></g></svg><div className="chart-days">{["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => <span key={day}>{day}</span>)}</div></div></section>
-        <section className="card system-card"><div className="card-heading"><div><span className="section-kicker">TRẠNG THÁI</span><h2>Dịch vụ hệ thống</h2></div></div><div className="service-list"><ServiceStatus icon="database" name="PostgreSQL" detail="Kết nối bình thường" /><ServiceStatus icon="shield" name="Xác thực" detail="Hoạt động ổn định" /><ServiceStatus icon="wand" name="AI sinh câu hỏi" detail="Sẵn sàng tích hợp" standby /><ServiceStatus icon="book" name="Kho nội dung" detail="40 bài đã xuất bản" /></div></section>
+        <section className="card admin-chart"><div className="card-heading"><div><span className="section-kicker">TƯƠNG TÁC</span><h2>{overviewPeriod === "week" ? "Hoạt động 7 ngày qua" : "Hoạt động 30 ngày qua"}</h2></div><button type="button" className="period-button" onClick={() => setOverviewPeriod((prev) => (prev === "week" ? "month" : "week"))}>{overviewPeriod === "week" ? "Tuần này" : "Tháng này"} <Icon name="chevron" size={15} /></button></div><div className="line-chart"><div className="grid-lines"><i /><i /><i /><i /></div><svg viewBox="0 0 700 220" preserveAspectRatio="none" aria-label="Biểu đồ hoạt động"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8b5cf6" stopOpacity=".3" /><stop offset="1" stopColor="#8b5cf6" stopOpacity="0" /></linearGradient></defs><path d={chartAreaPath} fill="url(#area)" /><path d={chartPath} fill="none" stroke="#8b5cf6" strokeWidth="5" strokeLinecap="round" /><g fill="#fff" stroke="#8b5cf6" strokeWidth="4">{chartDots.map((dot) => <circle key={`${dot.cx}-${dot.cy}`} cx={dot.cx} cy={dot.cy} r="6" />)}</g></svg><div className="chart-days">{chartLabels.map((day) => <span key={day}>{day}</span>)}</div></div></section>
+        <section className="card system-card"><div className="card-heading"><div><span className="section-kicker">TRẠNG THÁI</span><h2>Dịch vụ hệ thống</h2></div></div><div className="service-list"><ServiceStatus icon="database" name="PostgreSQL" detail="Kết nối bình thường" /><ServiceStatus icon="shield" name="Xác thực" detail="Hoạt động ổn định" /><ServiceStatus icon="wand" name="AI sinh câu hỏi" detail="RAG + Ollama sẵn sàng" /><ServiceStatus icon="book" name="Kho nội dung" detail="40 bài đã xuất bản" /></div></section>
       </div>
     </div>
   );
 }
 
 function AdminUsersView() {
+  const [usersList, setUsersList] = useState(adminUsers);
+  const [userSearch, setUserSearch] = useState("");
   const [accountForm, setAccountForm] = useState({
     name: "",
     email: "",
@@ -3657,6 +3717,16 @@ function AdminUsersView() {
         console.warn("User table sync warning:", profileError.message);
       }
 
+      setUsersList((current) => [
+        {
+          name: trimmedName,
+          role: addUserForm.role,
+          status: "Hoạt động",
+          lastLogin: "Vừa tạo",
+          avatar: trimmedName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "ND",
+        },
+        ...current,
+      ]);
       setCreateUserMessage("Tạo người dùng mới thành công. Hãy kiểm tra email để xác nhận tài khoản.");
       setAddUserForm({ name: "", email: "", password: "", role: "Học sinh" });
       setAddUserOpen(false);
@@ -3744,7 +3814,17 @@ function AdminUsersView() {
         <section className="card user-table-card">
           <div className="card-heading">
             <div><span className="section-kicker">TÀI KHOẢN</span><h2>Danh sách người dùng</h2></div>
-            <div className="search-box"><Icon name="search" size={17} /><span>Tìm kiếm...</span></div>
+            <label className="search-box">
+              <Icon name="search" size={17} />
+              <input
+                type="search"
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="Tìm kiếm..."
+                aria-label="Tìm kiếm người dùng"
+                style={{ border: 0, outline: 0, width: "100%", background: "transparent", color: "inherit", fontSize: "10px" }}
+              />
+            </label>
           </div>
 
           <div className="user-table">
@@ -3754,8 +3834,18 @@ function AdminUsersView() {
               <span>Trạng thái</span>
               <span>Hoạt động</span>
             </div>
-            {adminUsers.map((user) => (
-              <div className="table-row user-row" key={user.name}>
+            {usersList
+              .filter((user) => {
+                const q = userSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  user.name.toLowerCase().includes(q) ||
+                  user.role.toLowerCase().includes(q) ||
+                  user.status.toLowerCase().includes(q)
+                );
+              })
+              .map((user) => (
+              <div className="table-row user-row" key={`${user.name}-${user.lastLogin}`}>
                 <span className="student-name">
                   <i className="student-avatar tone-0">{user.avatar}</i>
                   <strong>{user.name}</strong>
@@ -3852,6 +3942,7 @@ function AdminUsersView() {
 
 function AdminContentView() {
   const [createContentOpen, setCreateContentOpen] = useState(false);
+  const [contentSearch, setContentSearch] = useState("");
   const [contentDraft, setContentDraft] = useState({
     title: "",
     type: "Bài học",
@@ -3992,12 +4083,33 @@ function AdminContentView() {
         <section className="card content-table-card">
           <div className="card-heading">
             <div><span className="section-kicker">KHÔNG GIAN</span><h2>Danh sách nội dung</h2></div>
-            <div className="search-box"><Icon name="search" size={17} /><span>Tìm nội dung...</span></div>
+            <label className="search-box">
+              <Icon name="search" size={17} />
+              <input
+                type="search"
+                value={contentSearch}
+                onChange={(event) => setContentSearch(event.target.value)}
+                placeholder="Tìm nội dung..."
+                aria-label="Tìm nội dung"
+                style={{ border: 0, outline: 0, width: "100%", background: "transparent", color: "inherit", fontSize: "10px" }}
+              />
+            </label>
           </div>
 
           <div className="content-list">
-            {contentItems.map((item) => (
-              <div className="content-list-item" key={`${item.title}-${item.updated}`}>
+            {contentItems
+              .filter((item) => {
+                const q = contentSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  item.title.toLowerCase().includes(q) ||
+                  item.type.toLowerCase().includes(q) ||
+                  item.status.toLowerCase().includes(q) ||
+                  item.level.toLowerCase().includes(q)
+                );
+              })
+              .map((item, idx) => (
+              <div className="content-list-item" key={`${item.title}-${item.updated}-${idx}`}>
                 <div className="content-main">
                   <span className="content-badge">{item.type}</span>
                   <div>
@@ -4006,9 +4118,19 @@ function AdminContentView() {
                   </div>
                 </div>
 
-                <span className={`content-status ${item.status === "Đã xuất bản" ? "published" : item.status === "Đang biên tập" ? "draft" : "review"}`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const order = ["Đang biên tập", "Kiểm duyệt", "Đã xuất bản"];
+                    const nextStatus = order[(order.indexOf(item.status) + 1) % order.length];
+                    setContentItems((current) => current.map((entry) => entry === item ? { ...entry, status: nextStatus, updated: "Vừa cập nhật" } : entry));
+                  }}
+                  title="Bấm để chuyển trạng thái"
+                  className={`content-status ${item.status === "Đã xuất bản" ? "published" : item.status === "Đang biên tập" ? "draft" : "review"}`}
+                  style={{ border: 0, cursor: "pointer" }}
+                >
                   {item.status}
-                </span>
+                </button>
               </div>
             ))}
           </div>
@@ -4046,12 +4168,40 @@ function AdminContentView() {
 }
 
 function AdminDataView() {
+  const [dataSearch, setDataSearch] = useState("");
+  const [exportNotice, setExportNotice] = useState("");
   const dataSources = [
     { name: "Kết quả học tập", source: "Học sinh · 1,248 người", status: "Đã đồng bộ", freshness: "Cập nhật 5 phút trước" },
     { name: "Bài kiểm tra AI", source: "Quiz engine · 18 đề", status: "Đang xử lý", freshness: "2 lượt đang chạy" },
     { name: "Hoạt động lớp học", source: "Giáo viên · 318 tài khoản", status: "Bình thường", freshness: "Cập nhật 12 phút trước" },
     { name: "Kho nội dung", source: "Bài học · 40 nội dung", status: "Đã đồng bộ", freshness: "Đã khóa dữ liệu hôm nay" },
   ];
+
+  const filteredSources = dataSources.filter((item) => {
+    const q = dataSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.source.toLowerCase().includes(q) ||
+      item.status.toLowerCase().includes(q)
+    );
+  });
+
+  function exportReport() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      summary: { dataPoints: "3.2M", reliability: "99.2%", avgBatchTime: "8.7s", pendingAlerts: 14 },
+      sources: filteredSources,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `smart-lotus-data-report-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportNotice("Đã xuất báo cáo dữ liệu hệ thống (.json).");
+  }
 
   return (
     <div className="view-stack">
@@ -4061,8 +4211,9 @@ function AdminDataView() {
           <h1>Dữ liệu</h1>
           <p>Giám sát nguồn dữ liệu, đồng bộ và chất lượng thông tin trong hệ thống học tập.</p>
         </div>
-        <button className="primary-button"><Icon name="plus" size={16} /> Xuất báo cáo</button>
+        <button type="button" className="primary-button" onClick={exportReport}><Icon name="plus" size={16} /> Xuất báo cáo</button>
       </section>
+      {exportNotice && <p className="auth-notice" role="status"><Icon name="check" size={14} />{exportNotice}</p>}
 
       <section className="stat-grid admin-stats">
         <StatCard icon="database" tone="purple" value="3.2M" label="Số điểm dữ liệu" change="+8.4% tuần này" />
@@ -4075,11 +4226,21 @@ function AdminDataView() {
         <section className="card data-table-card">
           <div className="card-heading">
             <div><span className="section-kicker">NGUỒN DỮ LIỆU</span><h2>Danh sách đồng bộ</h2></div>
-            <div className="search-box"><Icon name="search" size={17} /><span>Tìm nguồn dữ liệu...</span></div>
+            <label className="search-box">
+              <Icon name="search" size={17} />
+              <input
+                type="search"
+                value={dataSearch}
+                onChange={(event) => setDataSearch(event.target.value)}
+                placeholder="Tìm nguồn dữ liệu..."
+                aria-label="Tìm nguồn dữ liệu"
+                style={{ border: 0, outline: 0, width: "100%", background: "transparent", color: "inherit", fontSize: "10px" }}
+              />
+            </label>
           </div>
 
           <div className="data-list">
-            {dataSources.map((item) => (
+            {filteredSources.map((item) => (
               <div className="data-list-item" key={item.name}>
                 <div className="data-main">
                   <span className="data-badge">{item.source.split("·")[0].trim()}</span>
@@ -4131,13 +4292,47 @@ function AdminDataView() {
   );
 }
 
+const DEFAULT_ADMIN_SETTINGS = [
+  { name: "Email xác thực", detail: "Bắt buộc xác minh trước khi vào lớp", enabled: true },
+  { name: "AI sinh câu hỏi", detail: "Tự động tạo nội dung cho bài học mới", enabled: true },
+  { name: "Gửi thông báo push", detail: "Nhắc nhở bài tập và tiến độ học tập", enabled: false },
+  { name: "Chế độ bảo trì", detail: "Tạm thời khóa đăng nhập hệ thống", enabled: false },
+];
+
 function AdminConfigView() {
-  const settings = [
-    { name: "Email xác thực", detail: "Bắt buộc xác minh trước khi vào lớp", enabled: true },
-    { name: "AI sinh câu hỏi", detail: "Tự động tạo nội dung cho bài học mới", enabled: true },
-    { name: "Gửi thông báo push", detail: "Nhắc nhở bài tập và tiến độ học tập", enabled: false },
-    { name: "Chế độ bảo trì", detail: "Tạm thời khóa đăng nhập hệ thống", enabled: false },
-  ];
+  const [settings, setSettings] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("smart-lotus-admin-settings");
+        if (saved) {
+          const parsed = JSON.parse(saved) as Array<{ name: string; detail: string; enabled: boolean }>;
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        /* bỏ qua */
+      }
+    }
+    return DEFAULT_ADMIN_SETTINGS;
+  });
+  const [configNotice, setConfigNotice] = useState("");
+
+  function toggleSetting(name: string) {
+    setConfigNotice("");
+    setSettings((current) =>
+      current.map((setting) => (setting.name === name ? { ...setting, enabled: !setting.enabled } : setting)),
+    );
+  }
+
+  function saveSettings() {
+    try {
+      window.localStorage.setItem("smart-lotus-admin-settings", JSON.stringify(settings));
+    } catch {
+      /* bỏ qua */
+    }
+    setConfigNotice("Đã lưu cấu hình hệ thống thành công.");
+  }
+
+  const enabledCount = settings.filter((setting) => setting.enabled).length;
 
   return (
     <div className="view-stack">
@@ -4147,11 +4342,12 @@ function AdminConfigView() {
           <h1>Cấu hình</h1>
           <p>Quản lý quyền truy cập, bảo mật và trải nghiệm học tập cho toàn bộ hệ thống.</p>
         </div>
-        <button className="primary-button"><Icon name="check" size={16} /> Lưu thay đổi</button>
+        <button type="button" className="primary-button" onClick={saveSettings}><Icon name="check" size={16} /> Lưu thay đổi</button>
       </section>
+      {configNotice && <p className="auth-notice" role="status"><Icon name="check" size={14} />{configNotice}</p>}
 
       <section className="stat-grid admin-stats">
-        <StatCard icon="settings" tone="purple" value="12" label="Cài đặt đang bật" change="Tất cả hoạt động" />
+        <StatCard icon="settings" tone="purple" value={String(8 + enabledCount)} label="Cài đặt đang bật" change={`${enabledCount}/${settings.length} mục chính`} />
         <StatCard icon="shield" tone="green" value="3" label="Mức bảo mật" change="Đã tối ưu" />
         <StatCard icon="users" tone="orange" value="5" label="Nhóm quyền" change="Tổng hợp mới" />
         <StatCard icon="chart" tone="pink" value="92%" label="Độ ổn định" change="So với tuần trước" />
@@ -4170,7 +4366,13 @@ function AdminConfigView() {
                   <strong>{setting.name}</strong>
                   <small>{setting.detail}</small>
                 </div>
-                <button type="button" className={`toggle ${setting.enabled ? "on" : ""}`} aria-label={setting.name}>
+                <button
+                  type="button"
+                  className={`toggle ${setting.enabled ? "on" : ""}`}
+                  aria-label={setting.name}
+                  aria-pressed={setting.enabled}
+                  onClick={() => toggleSetting(setting.name)}
+                >
                   <span />
                 </button>
               </div>
@@ -4656,6 +4858,7 @@ function ResultScreen({
   isCompetition = false,
   userRank,
   greetingName,
+  studyStreak = 1,
 }: {
   result: QuizResult;
   journeyFailed: boolean;
@@ -4669,6 +4872,7 @@ function ResultScreen({
   isCompetition?: boolean;
   userRank?: number;
   greetingName?: string;
+  studyStreak?: number;
 }) {
   const total = result.total || 10;
   const normalTotal = Math.ceil(total / 2);
@@ -4786,7 +4990,7 @@ function ResultScreen({
             <div><small>CHI TIẾT ĐIỂM</small><strong>Điểm nền {result.baseScore} + bonus {result.bonus}</strong><p>{bonusMessage}</p></div>
             <i />
             <span>🔥</span>
-            <div><small>CHUỖI HỌC TẬP</small><strong>5 ngày liên tục</strong></div>
+            <div><small>CHUỖI HỌC TẬP</small><strong>{Math.max(1, studyStreak)} ngày liên tục</strong></div>
           </div>
         )}
 

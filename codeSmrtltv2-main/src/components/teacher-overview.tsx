@@ -25,7 +25,7 @@ function progressOf(student: Student) {
   return Math.round((student.lessonsCompleted / student.totalLessons) * 100);
 }
 
-export default function TeacherOverview({ teacherName, onToast, onCreateAssignment, onSendNotification }: { teacherName: string; onToast: (message: string) => void; onCreateAssignment: () => void; onSendNotification: (title: string, description: string) => void }) {
+export default function TeacherOverview({ teacherName, onToast, onCreateAssignment, onSendNotification, onOpenClasses }: { teacherName: string; onToast: (message: string) => void; onCreateAssignment: () => void; onSendNotification: (title: string, description: string) => void; onOpenClasses?: () => void }) {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -116,7 +116,7 @@ export default function TeacherOverview({ teacherName, onToast, onCreateAssignme
       {loadError && <p className="student-form-error" role="alert">{loadError}</p>}
 
       <section className="quick-actions">
-        <button className="quick-action" onClick={() => onToast("Mở Lớp học để sao chép mã và chia sẻ cho học sinh tham gia.")}>
+        <button className="quick-action" onClick={() => { onOpenClasses?.(); onToast("Mở Lớp học để sao chép mã và chia sẻ cho học sinh tham gia."); }}>
           <span className="quick-action-icon purple"><Icon name="users" /></span>
           <div><strong>Mời học sinh vào lớp</strong><small>Chia sẻ mã tham gia của lớp</small></div>
           <Icon name="arrow" className="quick-action-arrow" size={16} />

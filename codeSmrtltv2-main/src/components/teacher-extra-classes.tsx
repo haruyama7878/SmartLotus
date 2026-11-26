@@ -186,7 +186,7 @@ export default function TeacherExtraClasses({
               : "Chưa có học sinh nào gửi yêu cầu xin vào lớp"}
           </h3>
           <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
-            Khi học sinh bấm "Xin vào lớp", thông báo và yêu cầu sẽ xuất hiện ngay tại đây.
+            Khi học sinh bấm &ldquo;Xin vào lớp&rdquo;, thông báo và yêu cầu sẽ xuất hiện ngay tại đây.
           </p>
         </div>
       ) : (
