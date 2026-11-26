@@ -203,25 +203,15 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
               : (classroom.studentCount ?? 0);
             const classAssignments = assignmentsByClass.get(classroom.id) ?? [];
             const teacherName = classroom.teacherName || "Giáo viên bộ môn";
-            const teacherInitials = teacherName
-              .split(/\s+/)
-              .filter(Boolean)
-              .slice(-2)
-              .map((part) => part[0]?.toUpperCase() ?? "")
-              .join("") || "GV";
             const isRosterOpen = expandedRosterId === classroom.id;
 
             return (
               <article className="student-class-card" key={classroom.id}>
                 <div className={`classroom-card-banner student-class-banner tone-${classroom.color || "purple"}`}>
                   <div className="student-class-banner-top">
-                    <span className="student-class-pill">
-                      <Icon name="book" size={12} /> {classroom.subject || "Toán"}
-                    </span>
+                    <span className="student-class-subject">{classroom.subject || "Toán"}</span>
                     {currentClassCode && (
-                      <span className="student-class-pill code">
-                        {currentClassCode}
-                      </span>
+                      <span className="student-class-code-text">Mã: {currentClassCode}</span>
                     )}
                   </div>
                   <h2 className="student-class-banner-title">{classroom.name}</h2>
@@ -229,36 +219,22 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
 
                 <div className="student-class-copy">
                   <div className="student-class-teacher">
-                    <div className="student-class-teacher-left">
-                      <span className="student-class-teacher-avatar" aria-hidden="true">{teacherInitials}</span>
-                      <div className="student-class-teacher-meta">
-                        <small>Giáo viên</small>
-                        <strong>{teacherName}</strong>
-                      </div>
-                    </div>
+                    <span className="student-class-teacher-text">
+                      Giáo viên: <strong>{teacherName}</strong>
+                    </span>
                     {totalMembers > 0 && (
-                      <span className="student-class-member-badge">
-                        <Icon name="users" size={11} /> {totalMembers} HS
-                      </span>
+                      <span className="student-class-member-count">{totalMembers} học sinh</span>
                     )}
                   </div>
 
-                  <p className="student-class-desc">
-                    {classroom.description?.trim() || "Lớp học đồng hành cùng chương trình Toán tư duy Smart Lotus."}
-                  </p>
+                  {classroom.description?.trim() && (
+                    <p className="student-class-desc">{classroom.description.trim()}</p>
+                  )}
 
                   {(currentSchoolCode || currentClassCode) && (
-                    <div className="student-class-chips">
-                      {currentSchoolCode && (
-                        <span className="student-chip school">
-                          Mã trường: <strong>{currentSchoolCode}</strong>
-                        </span>
-                      )}
-                      {currentClassCode && (
-                        <span className="student-chip classcode">
-                          Mã lớp: <strong>{currentClassCode}</strong>
-                        </span>
-                      )}
+                    <div className="student-class-meta">
+                      {currentSchoolCode && <span>Mã trường: <strong>{currentSchoolCode}</strong></span>}
+                      {currentClassCode && <span>Mã lớp: <strong>{currentClassCode}</strong></span>}
                     </div>
                   )}
 
@@ -266,13 +242,11 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                     <div className="student-roster-box">
                       <button
                         type="button"
-                        className="secondary-button student-roster-toggle"
+                        className="student-roster-toggle"
                         onClick={() => setExpandedRosterId((prev) => (prev === classroom.id ? null : classroom.id))}
                       >
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Icon name="users" size={13} /> Bạn cùng lớp ({classMembers.students.length})
-                        </span>
-                        <span>{isRosterOpen ? "▲ Thu gọn" : "▼ Xem danh sách"}</span>
+                        <span>Bạn cùng lớp ({classMembers.students.length})</span>
+                        <span>{isRosterOpen ? "Thu gọn" : "Xem danh sách"}</span>
                       </button>
 
                       {isRosterOpen && (
@@ -280,17 +254,10 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                           {classMembers.students.map((st) => (
                             <div className="student-roster-item" key={st.id}>
                               <div className="student-roster-item-left">
-                                <div className="student-roster-avatar">
-                                  {st.avatar || "HS"}
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: "12px", fontWeight: 600 }}>{st.name}</div>
-                                  <div style={{ fontSize: "10px", color: "#64748b" }}>ID: {st.studentCode || `HS-${st.id}`}</div>
-                                </div>
+                                <strong>{st.name}</strong>
+                                <small>ID: {st.studentCode || `HS-${st.id}`}</small>
                               </div>
-                              <div style={{ textAlign: "right", fontSize: "11px", color: "#d97706", fontWeight: 700 }}>
-                                🌸 {st.lotusPoints || 0} điểm
-                              </div>
+                              <span className="student-roster-points">{st.lotusPoints || 0} điểm</span>
                             </div>
                           ))}
                         </div>
@@ -299,50 +266,30 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                   )}
 
                   {matchesPrimaryRoster && classMembers && classMembers.otherClasses && classMembers.otherClasses.length > 1 && (
-                    <div style={{ fontSize: "11px" }}>
-                      <div style={{ color: "#64748b", marginBottom: "4px", fontWeight: 600 }}>Các lớp khác cùng trường:</div>
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        {classMembers.otherClasses
-                          .filter((oc) => oc.code !== currentClassCode)
-                          .map((oc) => (
-                            <span key={oc.code} style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "6px", color: "#475569" }}>
-                              Lớp {oc.name} ({oc.code})
-                            </span>
-                          ))}
-                      </div>
+                    <div className="student-other-classes">
+                      <span>Các lớp khác cùng trường: </span>
+                      {classMembers.otherClasses
+                        .filter((oc) => oc.code !== currentClassCode)
+                        .map((oc) => `Lớp ${oc.name} (${oc.code})`)
+                        .join(", ")}
                     </div>
                   )}
 
                   <div className="student-class-assignments">
                     <div className="student-class-assignments-head">
-                      <h3><Icon name="target" size={14} /> Bài tập được giao</h3>
+                      <h3>Bài tập được giao</h3>
                       <span className="student-assignment-count">{classAssignments.length} bài</span>
                     </div>
 
                     {classAssignments.length === 0 ? (
-                      <p className="student-assignment-empty">✨ Chưa có bài tập nào được giao.</p>
+                      <p className="student-assignment-empty">Chưa có bài tập nào được giao.</p>
                     ) : classAssignments.map((assignment) => (
                       <div className="student-assignment-row" key={assignment.id}>
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <div className="student-assignment-title-row">
                             <strong>{assignment.title}</strong>
                             {assignment.isAdaptive && (
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "4px",
-                                  background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-                                  color: "#6d28d9",
-                                  border: "1px solid #ddd6fe",
-                                  fontSize: "9.5px",
-                                  fontWeight: 750,
-                                  padding: "2px 7px",
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                <Icon name="sparkles" size={10} /> Cá nhân hóa AI
-                              </span>
+                              <span className="student-adaptive-tag">Cá nhân hóa AI</span>
                             )}
                           </div>
                           <small>
@@ -350,8 +297,8 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                             {assignment.personalizedTheme && ` · Chủ đề: ${assignment.personalizedTheme}`}
                           </small>
                           {assignment.submission && (
-                            <small style={{ color: "#059669", fontWeight: 700 }}>
-                              ✓ Đã nộp · {assignment.submission.correctAnswers}/{assignment.submission.totalQuestions} câu đúng
+                            <small className="student-assignment-done">
+                              Đã nộp: {assignment.submission.correctAnswers}/{assignment.submission.totalQuestions} câu đúng
                             </small>
                           )}
                         </div>
@@ -360,7 +307,7 @@ export default function StudentClassrooms({ onStartAssignment }: { onStartAssign
                           disabled={Boolean(assignment.submission) || !assignment.questions?.length}
                           onClick={() => onStartAssignment(assignment)}
                         >
-                          {assignment.submission ? "Đã nộp" : (assignment.isAdaptive ? "✨ Làm bài" : "Làm bài")}
+                          {assignment.submission ? "Đã nộp" : "Làm bài"}
                         </button>
                       </div>
                     ))}
